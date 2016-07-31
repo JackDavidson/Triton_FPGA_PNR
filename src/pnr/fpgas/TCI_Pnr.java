@@ -1,6 +1,15 @@
-package pnr;
+package pnr.fpgas;
 
 // this class is the device speciffic class which actually performs the final place and route.
+import pnr.components.GlobalInput;
+import pnr.components.blif.Wire;
+import pnr.components.blif.WireFactory;
+import pnr.components.blif.SB_DFF;
+import pnr.components.blif.SB_LUT4;
+import pnr.components.fpga.Gate;
+import pnr.components.fpga.GateFactory;
+import pnr.fpgas.TCI_Descriptor;
+
 import java.util.*;
 
 public class TCI_Pnr {

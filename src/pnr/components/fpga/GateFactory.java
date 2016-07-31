@@ -1,4 +1,8 @@
-package pnr;
+package pnr.components.fpga;
+import pnr.components.blif.Wire;
+import pnr.components.blif.SB_DFF;
+import pnr.components.blif.SB_LUT4;
+
 import java.util.*;
 
 public class GateFactory {

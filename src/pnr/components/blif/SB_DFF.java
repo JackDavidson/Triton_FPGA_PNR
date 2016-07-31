@@ -1,4 +1,8 @@
-package pnr;
+package pnr.components.blif;
+
+import pnr.components.fpga.Element;
+import pnr.components.fpga.Gate;
+
 public class SB_DFF extends Element implements Gate {
   private static int lastId = 0;
   private int id;

@@ -1,5 +1,5 @@
-package pnr;
-import java.util.*;
+package pnr.components;
+import pnr.components.fpga.Element;
 
 // global outputs can be a destination for wires, but not a source.
 public class GlobalOutput extends Element {

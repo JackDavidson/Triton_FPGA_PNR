@@ -1,4 +1,9 @@
-package pnr;
+package pnr.tools;
+
+import pnr.CircuitDescriptor;
+import pnr.components.GlobalOutputFactory;
+import pnr.components.fpga.GateFactory;
+import pnr.components.GlobalInputFactory;
 
 import java.io.*;
 import java.util.*;

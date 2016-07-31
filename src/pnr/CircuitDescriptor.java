@@ -1,6 +1,6 @@
 package pnr;
-import java.io.*;
-import java.util.*;
+import pnr.components.blif.WireFactory;
+import pnr.components.fpga.GateFactory;
 
 public class CircuitDescriptor {
   

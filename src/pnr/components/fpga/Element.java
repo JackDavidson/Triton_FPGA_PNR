@@ -1,4 +1,4 @@
-package pnr;
+package pnr.components.fpga;
 import java.io.*;
 import java.util.*;
 

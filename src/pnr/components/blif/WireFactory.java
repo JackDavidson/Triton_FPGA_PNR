@@ -1,4 +1,6 @@
-package pnr;
+package pnr.components.blif;
+import pnr.components.fpga.Element;
+
 import java.util.*;
 
 public class WireFactory {

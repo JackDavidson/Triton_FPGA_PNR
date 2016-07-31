@@ -1,5 +1,9 @@
 package pnr;
-public class pnr {
+
+import pnr.fpgas.TCI_Pnr;
+import pnr.tools.BliffReader;
+
+public class PlaceAndRoute {
   
   
   private static String swapInputs(int a, int b, String originalBits) {

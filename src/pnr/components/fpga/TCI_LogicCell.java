@@ -1,5 +1,10 @@
-package pnr;
+package pnr.components.fpga;
 // this class is the device speciffic class which actually performs the final place and route.
+
+import pnr.components.GlobalInput;
+import pnr.components.GlobalOutput;
+import pnr.components.blif.Wire;
+import pnr.components.blif.SB_LUT4;
 
 public class TCI_LogicCell extends Element {
   private static int lastId = 0;
