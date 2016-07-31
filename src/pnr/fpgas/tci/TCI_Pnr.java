@@ -1,22 +1,22 @@
-package pnr.fpgas;
+package pnr.fpgas.tci;
 
 // this class is the device speciffic class which actually performs the final place and route.
 import pnr.components.GlobalInput;
 import pnr.components.blif.Wire;
-import pnr.components.blif.WireFactory;
 import pnr.components.blif.SB_DFF;
 import pnr.components.blif.SB_LUT4;
 import pnr.components.fpga.Gate;
-import pnr.components.fpga.GateFactory;
-import pnr.fpgas.TCI_Descriptor;
 
 import java.util.*;
 
 public class TCI_Pnr {
   TCI_Descriptor descriptor;
+  HashMap<String, Wire> wireLookup;
+  ArrayList<Gate> gates;
 
-  public TCI_Pnr() {
-
+  public TCI_Pnr(HashMap<String, Wire> wireLookup, ArrayList<Gate> gates) {
+    this.wireLookup = wireLookup;
+    this.gates = gates;
   }
 
   // takes the generic LUT, etc. and transforms them into the TCI_LogicCell,
@@ -24,7 +24,7 @@ public class TCI_Pnr {
   public void performTransforms() {
     descriptor = new TCI_Descriptor();
 
-    for (Wire wire : WireFactory.wireLookup.values()) { // add the global inputs
+    for (Wire wire : wireLookup.values()) { // add the global inputs
       if (wire.input == null) {
         System.out.println("[warn] assuming false for wire: " + wire.getName());
         continue;
@@ -34,7 +34,6 @@ public class TCI_Pnr {
       }
     }
 
-    ArrayList<Gate> gates = GateFactory.gateList;
     ArrayList<SB_DFF> dffs = new ArrayList<SB_DFF>();
     for (Gate gate : gates) { // add the LUT4s
       System.out.println("converting gate: " + gate.getOutputs()[0].getName());
