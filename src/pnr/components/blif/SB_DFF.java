@@ -1,5 +1,6 @@
 package pnr.components.blif;
 
+import pnr.CircuitDescriptor;
 import pnr.components.fpga.Element;
 import pnr.components.fpga.Gate;
 
@@ -12,11 +13,11 @@ public class SB_DFF extends Element implements Gate {
   public Wire[] o = new Wire[1];
   public Wire[] c = new Wire[1];
   
-  public SB_DFF(String c, String i, String o) {
+  public SB_DFF(String c, String i, String o, CircuitDescriptor descriptorToAddTo) {
     this.id = lastId++;
-    this.c[0] = WireFactory.assignWireOutput(c, this);
-    this.i[0] = WireFactory.assignWireOutput(i, this);
-    this.o[0] = WireFactory.assignWireInput(o, this);
+    this.c[0] = descriptorToAddTo.assignWireOutput(c, this);
+    this.i[0] = descriptorToAddTo.assignWireOutput(i, this);
+    this.o[0] = descriptorToAddTo.assignWireInput(o, this);
   }
   
   public Wire[] getInputs() {

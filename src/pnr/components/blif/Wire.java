@@ -1,10 +1,11 @@
 package pnr.components.blif;
+import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.Element;
 
 import java.util.*;
 
 
-public class Wire extends Element {
+public class Wire extends Element implements ICircuitComponent {
   public ArrayList<Element> outputs = new ArrayList<Element>();
   public Element input;
   private String name;
@@ -28,5 +29,10 @@ public class Wire extends Element {
       result += e.getName() + " ";
     }
     return result;
+  }
+
+  @Override
+  public boolean isPlaced() {
+    return false;
   }
 }

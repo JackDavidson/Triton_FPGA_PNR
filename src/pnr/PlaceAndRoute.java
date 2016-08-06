@@ -39,10 +39,10 @@ public class PlaceAndRoute {
 
 
     boolean success = true;
-    TCI_Pnr TciPnr = new TCI_Pnr(WireFactory.wireLookup, GateFactory.gateList);
+    TCI_Pnr TciPnr = new TCI_Pnr(reader.getResultDescriptor());
     IFpga fpga = new TritoncoreI(TciPnr);
     try {
-      ArrayList<ICircuitComponent> toPlace = new ArrayList<ICircuitComponent>();
+      ArrayList<ICircuitComponent> toPlace = reader.getResultDescriptor().getElements();
       ArrayList<IFpgaComponent> fpgaComponents = fpga.getComponents();
       fpga.placeInitialComponentsHard();
       while (!fpga.isDone()) {

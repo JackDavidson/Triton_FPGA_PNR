@@ -1,4 +1,5 @@
 package pnr.components.fpga;
+import pnr.CircuitDescriptor;
 import pnr.components.blif.Wire;
 import pnr.components.blif.SB_DFF;
 import pnr.components.blif.SB_LUT4;
@@ -6,10 +7,10 @@ import pnr.components.blif.SB_LUT4;
 import java.util.*;
 
 public class GateFactory {
-  private static Gate lastGate = null;
-  public static ArrayList<Gate> gateList = new ArrayList<Gate>();
-  
-  public static Gate makeGate(String description) {
+
+  private static Gate result;
+
+  public static Gate makeGate(String description, CircuitDescriptor descriptor) {
     String[] gateDetails = description.substring(".gate".length())
         .split("\\s+");
     String gateType = null;
@@ -25,47 +26,46 @@ public class GateFactory {
       gateIo.add(gateDetails[i]);
     }
 
+    //Gate result;
     switch (gateType) {
     case "SB_LUT4":
-      lastGate = makeLUT4(gateIo);
-      gateList.add(lastGate);
+      result = makeLUT4(gateIo, descriptor);
+      descriptor.addGate(result);
       break;
     case "SB_DFF":
-      lastGate = makeSB_DFF(gateIo);
-      gateList.add(lastGate);
+      result = makeSB_DFF(gateIo, descriptor);
+      descriptor.addGate(result);
       break;
     default:
       System.out.println("[error] could not find a match to gate: " + gateType);
+      result = null;
       break;
     }
-    return lastGate; // default is to return null
-  }
-  
-  public static void setLastGatesInit(String initValues) {
-    lastGate.setInit(initValues);
+    return result; // default is to return null
   }
 
-  public static SB_LUT4 makeLUT4(ArrayList<String> io) {
+  public static SB_LUT4 makeLUT4(ArrayList<String> io, CircuitDescriptor descriptor) {
     TreeMap<String, String> inputsToOutputs = new TreeMap<String, String>();
     for (String inOrOut : io) {
       String[] thisInToOut = inOrOut.split("=");
       //System.out.println("I is: " + thisInToOut[0] + "val is:" + thisInToOut[1]);
       inputsToOutputs.put(thisInToOut[0], thisInToOut[1]);
     }
-    return new SB_LUT4(inputsToOutputs.get("I0"), inputsToOutputs.get("I1"), inputsToOutputs.get("I2"), inputsToOutputs.get("I3"), inputsToOutputs.get("O"));
+    return new SB_LUT4(inputsToOutputs.get("I0"), inputsToOutputs.get("I1"), inputsToOutputs.get("I2"),
+            inputsToOutputs.get("I3"), inputsToOutputs.get("O"), descriptor);
   }
   
-  public static SB_DFF makeSB_DFF(ArrayList<String> io) {
+  public static SB_DFF makeSB_DFF(ArrayList<String> io, CircuitDescriptor descriptor) {
     TreeMap<String, String> inputsToOutputs = new TreeMap<String, String>();
     for (String inOrOut : io) {
       String[] thisInToOut = inOrOut.split("=");
       //System.out.println("I is: " + thisInToOut[0] + "val is:" + thisInToOut[1]);
       inputsToOutputs.put(thisInToOut[0], thisInToOut[1]);
     }
-    return new SB_DFF(inputsToOutputs.get("C"), inputsToOutputs.get("D"), inputsToOutputs.get("Q"));
+    return new SB_DFF(inputsToOutputs.get("C"), inputsToOutputs.get("D"), inputsToOutputs.get("Q"), descriptor);
   }
   
-  public static void handleParam(String description) {
+  public static void handleParam(String description, Gate createdGate) {
     String[] pDetails = description.substring(".param".length())
         .split("\\s+");
     String pType = null;
@@ -83,7 +83,7 @@ public class GateFactory {
 
     switch (pType) {
     case "LUT_INIT":
-      setLastGatesInit(detailsList.get(0));
+      createdGate.setInit(detailsList.get(0));
       break;
     default:
       System.out.println("[error] could not find a match to param type: " + pType);
@@ -91,7 +91,7 @@ public class GateFactory {
     }
   }
   
-  public static String describe() {
+  public static String describe(ArrayList<Gate> gateList) {
     String result = "------GATES------\n";
     result += "gate: [type] [output] [in1] [in2] [in3] [...\n\n";
     for (Gate gate : gateList) {
@@ -101,7 +101,7 @@ public class GateFactory {
       }
       result += "\n";
     }
-    
+
     return result;
   }
 

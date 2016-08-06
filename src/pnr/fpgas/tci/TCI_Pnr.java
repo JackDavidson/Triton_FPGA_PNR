@@ -1,6 +1,7 @@
 package pnr.fpgas.tci;
 
 // this class is the device speciffic class which actually performs the final place and route.
+import pnr.CircuitDescriptor;
 import pnr.components.GlobalInput;
 import pnr.components.blif.Wire;
 import pnr.components.blif.SB_DFF;
@@ -14,9 +15,9 @@ public class TCI_Pnr {
   HashMap<String, Wire> wireLookup;
   ArrayList<Gate> gates;
 
-  public TCI_Pnr(HashMap<String, Wire> wireLookup, ArrayList<Gate> gates) {
-    this.wireLookup = wireLookup;
-    this.gates = gates;
+  public TCI_Pnr(CircuitDescriptor descriptor) {
+    this.wireLookup = descriptor.getWireLookup();
+    this.gates = descriptor.getGateList();
   }
 
   // takes the generic LUT, etc. and transforms them into the TCI_LogicCell,
