@@ -1,22 +1,19 @@
 package pnr;
 import pnr.components.blif.Wire;
 import pnr.components.blif.WireFactory;
-import pnr.components.circuit.ICircuitComponent;
+import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.Element;
-import pnr.components.fpga.Gate;
 import pnr.components.fpga.GateFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class CircuitDescriptor {
+public class BlifDom {
 
   private HashMap<String, Wire> wireLookup = new HashMap<>();
-  private ArrayList<Gate> gateList = new ArrayList<>();
+  private ArrayList<BlifItemRepr> gateList = new ArrayList<>();
 
-  private ArrayList<ICircuitComponent> elements = new ArrayList<>();
-
-  public void addGate(Gate gate) {
+  public void addGate(BlifItemRepr gate) {
     gateList.add(gate);
   }
 
@@ -25,7 +22,6 @@ public class CircuitDescriptor {
     if (wire == null) {
       wire = new Wire(name);
       wireLookup.put(name, wire);
-      elements.add(wire);
     }
     if (wire.input != null) {
       System.out.println("[warn] wire " + name + " alredy has an input defined!");
@@ -49,11 +45,7 @@ public class CircuitDescriptor {
     return wireLookup;
   }
 
-  public ArrayList<ICircuitComponent> getElements() {
-    return elements;
-  }
-
-  public ArrayList<Gate> getGateList() {
+  public ArrayList<BlifItemRepr> getGateList() {
     return gateList;
   }
   

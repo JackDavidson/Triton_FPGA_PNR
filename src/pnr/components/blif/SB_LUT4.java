@@ -1,10 +1,10 @@
 package pnr.components.blif;
 
-import pnr.CircuitDescriptor;
+import pnr.BlifDom;
+import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.Element;
-import pnr.components.fpga.Gate;
 
-public class SB_LUT4 extends Element implements Gate {
+public class SB_LUT4 extends Element implements BlifItemRepr {
   private static int lastId = 0;
   private int id;
   private String initValue;
@@ -12,7 +12,7 @@ public class SB_LUT4 extends Element implements Gate {
   public Wire[] i = new Wire[4];
   public Wire[] o = new Wire[1];
   
-  public SB_LUT4(String i0, String i1, String i2, String i3, String o, CircuitDescriptor circuitDescriptorToAddTo) {
+  public SB_LUT4(String i0, String i1, String i2, String i3, String o, BlifDom circuitDescriptorToAddTo) {
     this.id = lastId++;
     this.i[0] = circuitDescriptorToAddTo.assignWireOutput(i0, this);
     this.i[1] = circuitDescriptorToAddTo.assignWireOutput(i1, this);

@@ -25,7 +25,7 @@ import java.util.ArrayList;
  * inferPlacements(), which gives you a chance to infer any placements based on
  *   what was placed last.
  *
- * orderPlacements(), which is given an array to re-order. The normal
+ * getNextItemToPlace(), which is given an array to re-order. The normal
  *   implementation will order by fewest number of input and output
  *   dependencies left to place. (e.g. a component which depends on only other
  *   components which have already been assigned to will be first in the array)
@@ -52,7 +52,7 @@ public interface IFpga {
 
     // return false if you choose not to implement this method, and would like
     // to use the default implementation.
-    boolean orderPlacements(ArrayList<ICircuitComponent> placements);
+    ICircuitComponent getNextItemToPlace(ArrayList<ICircuitComponent> placements);
 
     // numTries is the number of times the algorithm has called this function
     // and failed somewhere further along. Make sure that you try different placements

@@ -5,7 +5,7 @@ import pnr.components.fpga.Element;
 import java.util.*;
 
 
-public class Wire extends Element implements ICircuitComponent {
+public class Wire extends Element {
   public ArrayList<Element> outputs = new ArrayList<Element>();
   public Element input;
   private String name;
@@ -29,10 +29,5 @@ public class Wire extends Element implements ICircuitComponent {
       result += e.getName() + " ";
     }
     return result;
-  }
-
-  @Override
-  public boolean isPlaced() {
-    return false;
   }
 }

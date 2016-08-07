@@ -1,16 +1,16 @@
 package pnr.components;
-import pnr.CircuitDescriptor;
+import pnr.BlifDom;
 
 //global inputs can be a source for wires, but not a destination.
 public class GlobalInputFactory {
   
-  public static GlobalInput makeGlobalInput(String name, CircuitDescriptor descriptor) {
+  public static GlobalInput makeGlobalInput(String name, BlifDom descriptor) {
    GlobalInput in = new GlobalInput();
       descriptor.assignWireInput(name, in);
    return in;
   }
   
-  public static void makeInputs(String line, CircuitDescriptor descriptor) {
+  public static void makeInputs(String line, BlifDom descriptor) {
     //System.out.println("found inputs: ");
     String[] inputNames = line.substring(".inputs".length()).split("\\s+");
     for (String inputName : inputNames) {

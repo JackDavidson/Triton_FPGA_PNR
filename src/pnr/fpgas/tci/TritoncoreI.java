@@ -14,9 +14,9 @@ import java.util.ArrayList;
 public class TritoncoreI implements IFpga {
 
 
-    TCI_Pnr placeAndRouter;
+    InternalDom placeAndRouter;
 
-    public TritoncoreI(TCI_Pnr placeAndRouter) {
+    public TritoncoreI(InternalDom placeAndRouter) {
       this.placeAndRouter = placeAndRouter;
     }
 
@@ -36,8 +36,8 @@ public class TritoncoreI implements IFpga {
     }
 
     @Override
-    public boolean orderPlacements(ArrayList<ICircuitComponent> placements) {
-        return false;
+    public ICircuitComponent getNextItemToPlace(ArrayList<ICircuitComponent> placements) {
+        return null;
     }
 
     @Override
@@ -57,10 +57,6 @@ public class TritoncoreI implements IFpga {
 
     @Override
     public String getBitstream() {
-        placeAndRouter.performTransforms();
-        placeAndRouter.resolveConnections();
-        placeAndRouter.placeHardcodedNodes();
-        placeAndRouter.printBitstream();
         return "";
     }
 }

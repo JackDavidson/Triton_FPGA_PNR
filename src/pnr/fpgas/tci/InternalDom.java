@@ -1,29 +1,34 @@
 package pnr.fpgas.tci;
 
 // this class is the device speciffic class which actually performs the final place and route.
-import pnr.CircuitDescriptor;
+import pnr.BlifDom;
 import pnr.components.GlobalInput;
 import pnr.components.blif.Wire;
 import pnr.components.blif.SB_DFF;
 import pnr.components.blif.SB_LUT4;
-import pnr.components.fpga.Gate;
+import pnr.components.circuit.ICircuitComponent;
+import pnr.components.fpga.BlifItemRepr;
 
 import java.util.*;
 
-public class TCI_Pnr {
-  TCI_Descriptor descriptor;
+public class InternalDom {
+  InternalDescriptor descriptor;
   HashMap<String, Wire> wireLookup;
-  ArrayList<Gate> gates;
+  ArrayList<BlifItemRepr> gates;
 
-  public TCI_Pnr(CircuitDescriptor descriptor) {
+  public InternalDom(BlifDom descriptor) {
     this.wireLookup = descriptor.getWireLookup();
     this.gates = descriptor.getGateList();
+
+    performTransforms();
+    resolveConnections();
+    placeHardcodedNodes();
   }
 
   // takes the generic LUT, etc. and transforms them into the TCI_LogicCell,
   // etc.
   public void performTransforms() {
-    descriptor = new TCI_Descriptor();
+    descriptor = new InternalDescriptor();
 
     for (Wire wire : wireLookup.values()) { // add the global inputs
       if (wire.input == null) {
@@ -36,7 +41,7 @@ public class TCI_Pnr {
     }
 
     ArrayList<SB_DFF> dffs = new ArrayList<SB_DFF>();
-    for (Gate gate : gates) { // add the LUT4s
+    for (BlifItemRepr gate : gates) { // add the LUT4s
       System.out.println("converting gate: " + gate.getOutputs()[0].getName());
       if (gate.getClass() == SB_DFF.class) {
         System.out.println("its a DFF: " + gate.getOutputs()[0].getName() + " delaying.");
@@ -74,7 +79,7 @@ public class TCI_Pnr {
 
   }
 
-  public void printBitstream() {
+  public void printRepresentation() {
     System.out.println(descriptor.describeUnlinkedLogicCells());
     System.out.println(descriptor.describeLinkedLogicCells());
   }
@@ -82,5 +87,9 @@ public class TCI_Pnr {
   // this just places the output logic cells on Tritoncore-I
   public void placeHardcodedNodes() {
     descriptor.placeOutputs();
+  }
+
+  public ArrayList<ICircuitComponent> getComponentsList() {
+    return descriptor.getComponentsList();
   }
 }

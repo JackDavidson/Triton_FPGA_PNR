@@ -1,8 +1,8 @@
 package pnr.tools;
 
-import pnr.CircuitDescriptor;
+import pnr.BlifDom;
 import pnr.components.GlobalOutputFactory;
-import pnr.components.fpga.Gate;
+import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.GateFactory;
 import pnr.components.GlobalInputFactory;
 
@@ -11,9 +11,9 @@ import java.util.*;
 
 public class BliffReader {
   
-  private CircuitDescriptor resultDescriptor = new CircuitDescriptor();
+  private BlifDom resultDescriptor = new BlifDom();
 
-  public CircuitDescriptor getResultDescriptor() {
+  public BlifDom getResultDom() {
     return resultDescriptor;
   }
   
@@ -27,7 +27,7 @@ public class BliffReader {
     }
     
     String[] fileLines = fileContents.split("\n");
-    Gate lastGateCreated = null;
+    BlifItemRepr lastGateCreated = null;
     for (String line : fileLines) {
       String lineToParse = line.trim();
       if (!lineToParse.startsWith(".")) { // ignore anything that is meaningless

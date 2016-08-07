@@ -1,5 +1,5 @@
 package pnr.components.fpga;
-import pnr.CircuitDescriptor;
+import pnr.BlifDom;
 import pnr.components.blif.Wire;
 import pnr.components.blif.SB_DFF;
 import pnr.components.blif.SB_LUT4;
@@ -8,9 +8,9 @@ import java.util.*;
 
 public class GateFactory {
 
-  private static Gate result;
+  private static BlifItemRepr result;
 
-  public static Gate makeGate(String description, CircuitDescriptor descriptor) {
+  public static BlifItemRepr makeGate(String description, BlifDom descriptor) {
     String[] gateDetails = description.substring(".gate".length())
         .split("\\s+");
     String gateType = null;
@@ -26,7 +26,7 @@ public class GateFactory {
       gateIo.add(gateDetails[i]);
     }
 
-    //Gate result;
+    //BlifItemRepr result;
     switch (gateType) {
     case "SB_LUT4":
       result = makeLUT4(gateIo, descriptor);
@@ -44,7 +44,7 @@ public class GateFactory {
     return result; // default is to return null
   }
 
-  public static SB_LUT4 makeLUT4(ArrayList<String> io, CircuitDescriptor descriptor) {
+  public static SB_LUT4 makeLUT4(ArrayList<String> io, BlifDom descriptor) {
     TreeMap<String, String> inputsToOutputs = new TreeMap<String, String>();
     for (String inOrOut : io) {
       String[] thisInToOut = inOrOut.split("=");
@@ -55,7 +55,7 @@ public class GateFactory {
             inputsToOutputs.get("I3"), inputsToOutputs.get("O"), descriptor);
   }
   
-  public static SB_DFF makeSB_DFF(ArrayList<String> io, CircuitDescriptor descriptor) {
+  public static SB_DFF makeSB_DFF(ArrayList<String> io, BlifDom descriptor) {
     TreeMap<String, String> inputsToOutputs = new TreeMap<String, String>();
     for (String inOrOut : io) {
       String[] thisInToOut = inOrOut.split("=");
@@ -65,7 +65,7 @@ public class GateFactory {
     return new SB_DFF(inputsToOutputs.get("C"), inputsToOutputs.get("D"), inputsToOutputs.get("Q"), descriptor);
   }
   
-  public static void handleParam(String description, Gate createdGate) {
+  public static void handleParam(String description, BlifItemRepr createdGate) {
     String[] pDetails = description.substring(".param".length())
         .split("\\s+");
     String pType = null;
@@ -91,10 +91,10 @@ public class GateFactory {
     }
   }
   
-  public static String describe(ArrayList<Gate> gateList) {
+  public static String describe(ArrayList<BlifItemRepr> gateList) {
     String result = "------GATES------\n";
     result += "gate: [type] [output] [in1] [in2] [in3] [...\n\n";
-    for (Gate gate : gateList) {
+    for (BlifItemRepr gate : gateList) {
       result += "gate: " + gate.getClass().getSimpleName() + " " + gate.getOutputs()[0].getName();
       for (Wire wire : gate.getInputs()) {
         result += " " + wire.getName();

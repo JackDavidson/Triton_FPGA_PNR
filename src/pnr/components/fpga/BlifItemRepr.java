@@ -2,7 +2,7 @@ package pnr.components.fpga;
 
 import pnr.components.blif.Wire;
 
-public interface Gate {
+public interface BlifItemRepr {
   Wire[] getInputs();
   Wire[] getOutputs();
   void setInit(String value);
