@@ -3,17 +3,20 @@ package pnr.fpgas.tci;
 // this class is the device speciffic class which actually performs the final place and route.
 import pnr.BlifDom;
 import pnr.components.GlobalInput;
-import pnr.components.blif.Wire;
-import pnr.components.blif.SB_DFF;
-import pnr.components.blif.SB_LUT4;
+import pnr.components.GlobalOutput;
+import pnr.components.blif.BlifDff;
+import pnr.components.blif.BlifWire;
+import pnr.components.blif.BlifLut4;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.BlifItemRepr;
+import pnr.components.fpga.Element;
+import pnr.misc.Defs;
 
 import java.util.*;
 
 public class InternalDom {
   InternalDescriptor descriptor;
-  HashMap<String, Wire> wireLookup;
+  HashMap<String, BlifWire> wireLookup;
   ArrayList<BlifItemRepr> gates;
 
   public InternalDom(BlifDom descriptor) {
@@ -30,30 +33,58 @@ public class InternalDom {
   public void performTransforms() {
     descriptor = new InternalDescriptor();
 
-    for (Wire wire : wireLookup.values()) { // add the global inputs
+    for (BlifWire wire : wireLookup.values()) { // add the global inputs
       if (wire.input == null) {
         System.out.println("[warn] assuming false for wire: " + wire.getName());
+        descriptor.addFalse(wire.getName());
         continue;
       }
       if (wire.input.getClass() == GlobalInput.class) {
         descriptor.add(wire.getName(), (GlobalInput) wire.input);
       }
-    }
-
-    ArrayList<SB_DFF> dffs = new ArrayList<SB_DFF>();
-    for (BlifItemRepr gate : gates) { // add the LUT4s
-      System.out.println("converting gate: " + gate.getOutputs()[0].getName());
-      if (gate.getClass() == SB_DFF.class) {
-        System.out.println("its a DFF: " + gate.getOutputs()[0].getName() + " delaying.");
-        dffs.add((SB_DFF) gate);
-      } else if (gate.getClass() == SB_LUT4.class) {
-        System.out.println("its a LUT4: " + gate.getOutputs()[0].getName() + " adding to gate list.");
-        descriptor.add((SB_LUT4) gate);
+      if (wire.outputs.size() > 0) {
+        for (Element wireOutput : wire.outputs) {
+          if (wireOutput.getClass() == GlobalOutput.class) {
+            if (Defs.debug) {
+              System.out.println("In InternalDom, performTransforms. Found GlobalOutput. ");
+            }
+            descriptor.add(wire.getName(), (GlobalOutput) wireOutput);
+          }
+        }
       }
     }
 
-    for (SB_DFF dff : dffs) { // add the DFFs
-      descriptor.add(dff);
+    for (BlifItemRepr gate : gates) { // add the LUT4s
+      if (Defs.debug) {
+        System.out.println("converting gate: " + gate.getClass().getName());
+      }
+      if (gate.getClass() == BlifDff.class) {
+        if (Defs.debug) {
+          System.out.println("its a DFF: adding to internal DOM.");
+        }
+
+        descriptor.add((BlifDff) gate);
+      } else if (gate.getClass() == BlifLut4.class) {
+
+        if (Defs.debug) {
+          System.out.println("its a LUT4: adding to InternalDom.");
+        }
+
+        descriptor.add((BlifLut4) gate);
+
+        if (Defs.debug) {
+          System.out.println("the lut4 has: " + ((BlifLut4) gate).getInputs().length + " inputs");
+          for (BlifWire w : ((BlifLut4) gate).getInputs()) {
+            System.out.print(" " + w.getName());
+          }
+          System.out.print("\n");
+          System.out.println("the lut4 has: " + ((BlifLut4) gate).getOutputs().length + " outputs");
+          for (BlifWire w : ((BlifLut4) gate).getOutputs()) {
+            System.out.print(" " + w.getName());
+          }
+          System.out.print("\n");
+        }
+      }
     }
 
   }

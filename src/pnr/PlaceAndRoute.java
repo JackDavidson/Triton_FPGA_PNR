@@ -1,14 +1,17 @@
 package pnr;
 
+import pnr.components.circuit.CircuitLut;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.fpgas.CannotPlaceException;
 import pnr.fpgas.DoesNotMapException;
 import pnr.fpgas.IFpga;
 import pnr.fpgas.tci.InternalDom;
 import pnr.fpgas.tci.TritoncoreI;
+import pnr.misc.Defs;
 import pnr.tools.BliffReader;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Stack;
 
 public class PlaceAndRoute {
@@ -60,7 +63,7 @@ public class PlaceAndRoute {
       while (!fpga.isDone()) {
         ICircuitComponent nextComponent = fpga.getNextItemToPlace(toPlace);
         if (nextComponent == null)
-          nextComponent = toPlace.get(numberOfAttempts.peek());
+          nextComponent = toPlace.get(numberOfAttempts.peek()); // just gets a random one
         //fpga.inferPlacements(toPlace, 0); // todo: count the number of retries
         if (toPlace == null)
           break; // done.
@@ -88,6 +91,10 @@ public class PlaceAndRoute {
   private static ArrayList<ICircuitComponent> backtrack(ArrayList<ICircuitComponent> circuitComponents,
                                                         Stack<Integer> numberOfAttempts,
                                                         Stack<ICircuitComponent> placedItems) {
+    if (Defs.stepByStep) {
+      System.out.println("\n\nBACKTRACK!!!\n\n");
+    }
+
     numberOfAttempts.pop(); // pop the latest one off the stack (it failed)
     numberOfAttempts.push(numberOfAttempts.pop() + 1);
     ICircuitComponent justPlaced =placedItems.pop();
@@ -109,17 +116,27 @@ public class PlaceAndRoute {
         }
       }
       if (component.getOutputs() != null) {
-        for (ICircuitComponent input : component.getOutputs()) {
-          System.out.print(" O-" + getComponentName(input));
+        for (Map.Entry<Integer, ArrayList<ICircuitComponent>> input : component.getOutputs().entrySet()) {
+          for (ICircuitComponent inputObj : input.getValue()) {
+            System.out.print(" O-" + getComponentName(inputObj) + padInt(input.getKey()));
+          }
         }
+      }
+      if (component.getClass() == CircuitLut.class) {
+        CircuitLut circuitLut = (CircuitLut) component;
+        circuitLut.getInitValues();
+        System.out.print(" INIT_" + circuitLut.getInitValues());
       }
       System.out.print("\n");
     }
   }
 
   private static String getComponentName(ICircuitComponent component) {
-    int id = component.getId();
-    String idPadding = id < 10 ? "__" : id < 100 ? "_" : "";
-    return component.threeLetterType() + idPadding + id;
+    return component.threeLetterType() + padInt(component.getId());
+  }
+
+  private static String padInt(int i) {
+    String padding = i < 10 ? "__" : i < 100 ? "_" : "";
+    return padding + i;
   }
 }

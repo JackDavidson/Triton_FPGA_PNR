@@ -5,12 +5,12 @@ import pnr.components.fpga.Element;
 import java.util.*;
 
 
-public class Wire extends Element {
+public class BlifWire extends Element {
   public ArrayList<Element> outputs = new ArrayList<Element>();
   public Element input;
   private String name;
   
-  public Wire(String name) {
+  public BlifWire(String name) {
     this.name = name;
   }
   

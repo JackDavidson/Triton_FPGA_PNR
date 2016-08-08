@@ -2,22 +2,30 @@ package pnr.components.circuit;
 
 import pnr.components.fpga.IFpgaComponent;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * Created by jack on 7/31/16.
  */
 public class CircuitFf implements ICircuitComponent {
 
-    ArrayList<ICircuitComponent> outputs = new ArrayList<>();
+    TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
     @Override
-    public void addOutput(ICircuitComponent component) {
-        outputs.add(component);
+    public void addOutput(Integer outputNumber, ICircuitComponent component) {
+        ArrayList<ICircuitComponent> componentsOnThisOutput = outputs.get(outputNumber);
+        if (componentsOnThisOutput == null) {
+            componentsOnThisOutput = new ArrayList<>();
+            outputs.put(outputNumber, componentsOnThisOutput);
+        }
+        componentsOnThisOutput.add(component);
     }
+    ArrayList<ICircuitComponent> inputs = new ArrayList<>();
     @Override
     public void addInput(ICircuitComponent component) {
-        outputs.add(component);
+        inputs.add(component);
     }
 
     private boolean isPlaced = false;
@@ -38,11 +46,11 @@ public class CircuitFf implements ICircuitComponent {
     }
     @Override
     public List<ICircuitComponent> getInputs() {
-        return null;
+        return inputs;
     }
     @Override
-    public List<ICircuitComponent> getOutputs() {
-        return null;
+    public AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs() {
+        return outputs;
     }
     @Override
     public String threeLetterType() {

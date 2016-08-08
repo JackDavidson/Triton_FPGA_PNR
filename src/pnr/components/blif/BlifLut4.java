@@ -4,15 +4,15 @@ import pnr.BlifDom;
 import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.Element;
 
-public class SB_LUT4 extends Element implements BlifItemRepr {
+public class BlifLut4 extends Element implements BlifItemRepr {
   private static int lastId = 0;
   private int id;
   private String initValue;
   
-  public Wire[] i = new Wire[4];
-  public Wire[] o = new Wire[1];
+  public BlifWire[] i = new BlifWire[4];
+  public BlifWire[] o = new BlifWire[1];
   
-  public SB_LUT4(String i0, String i1, String i2, String i3, String o, BlifDom circuitDescriptorToAddTo) {
+  public BlifLut4(String i0, String i1, String i2, String i3, String o, BlifDom circuitDescriptorToAddTo) {
     this.id = lastId++;
     this.i[0] = circuitDescriptorToAddTo.assignWireOutput(i0, this);
     this.i[1] = circuitDescriptorToAddTo.assignWireOutput(i1, this);
@@ -21,10 +21,10 @@ public class SB_LUT4 extends Element implements BlifItemRepr {
     this.o[0] = circuitDescriptorToAddTo.assignWireInput(o, this);
   }
   
-  public Wire[] getInputs() {
+  public BlifWire[] getInputs() {
     return i;
   }
-  public Wire[] getOutputs() {
+  public BlifWire[] getOutputs() {
     return o;
   }
   

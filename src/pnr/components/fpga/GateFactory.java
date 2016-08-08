@@ -1,8 +1,8 @@
 package pnr.components.fpga;
 import pnr.BlifDom;
-import pnr.components.blif.Wire;
-import pnr.components.blif.SB_DFF;
-import pnr.components.blif.SB_LUT4;
+import pnr.components.blif.BlifDff;
+import pnr.components.blif.BlifWire;
+import pnr.components.blif.BlifLut4;
 
 import java.util.*;
 
@@ -32,7 +32,7 @@ public class GateFactory {
       result = makeLUT4(gateIo, descriptor);
       descriptor.addGate(result);
       break;
-    case "SB_DFF":
+    case "BlifDff":
       result = makeSB_DFF(gateIo, descriptor);
       descriptor.addGate(result);
       break;
@@ -44,25 +44,25 @@ public class GateFactory {
     return result; // default is to return null
   }
 
-  public static SB_LUT4 makeLUT4(ArrayList<String> io, BlifDom descriptor) {
+  public static BlifLut4 makeLUT4(ArrayList<String> io, BlifDom descriptor) {
     TreeMap<String, String> inputsToOutputs = new TreeMap<String, String>();
     for (String inOrOut : io) {
       String[] thisInToOut = inOrOut.split("=");
       //System.out.println("I is: " + thisInToOut[0] + "val is:" + thisInToOut[1]);
       inputsToOutputs.put(thisInToOut[0], thisInToOut[1]);
     }
-    return new SB_LUT4(inputsToOutputs.get("I0"), inputsToOutputs.get("I1"), inputsToOutputs.get("I2"),
+    return new BlifLut4(inputsToOutputs.get("I0"), inputsToOutputs.get("I1"), inputsToOutputs.get("I2"),
             inputsToOutputs.get("I3"), inputsToOutputs.get("O"), descriptor);
   }
   
-  public static SB_DFF makeSB_DFF(ArrayList<String> io, BlifDom descriptor) {
+  public static BlifDff makeSB_DFF(ArrayList<String> io, BlifDom descriptor) {
     TreeMap<String, String> inputsToOutputs = new TreeMap<String, String>();
     for (String inOrOut : io) {
       String[] thisInToOut = inOrOut.split("=");
       //System.out.println("I is: " + thisInToOut[0] + "val is:" + thisInToOut[1]);
       inputsToOutputs.put(thisInToOut[0], thisInToOut[1]);
     }
-    return new SB_DFF(inputsToOutputs.get("C"), inputsToOutputs.get("D"), inputsToOutputs.get("Q"), descriptor);
+    return new BlifDff(inputsToOutputs.get("C"), inputsToOutputs.get("D"), inputsToOutputs.get("Q"), descriptor);
   }
   
   public static void handleParam(String description, BlifItemRepr createdGate) {
@@ -96,7 +96,7 @@ public class GateFactory {
     result += "gate: [type] [output] [in1] [in2] [in3] [...\n\n";
     for (BlifItemRepr gate : gateList) {
       result += "gate: " + gate.getClass().getSimpleName() + " " + gate.getOutputs()[0].getName();
-      for (Wire wire : gate.getInputs()) {
+      for (BlifWire wire : gate.getInputs()) {
         result += " " + wire.getName();
       }
       result += "\n";

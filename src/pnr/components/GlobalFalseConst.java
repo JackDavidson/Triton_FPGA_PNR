@@ -1,4 +1,5 @@
 package pnr.components;
+
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.Element;
 
@@ -7,8 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
 
-// global outputs can be a destination for wires, but not a source.
-public class GlobalOutput extends Element implements ICircuitComponent {
+//global inputs can be a source for wires, but not a destination.
+public class GlobalFalseConst implements ICircuitComponent {
 
   TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
   @Override
@@ -20,31 +21,20 @@ public class GlobalOutput extends Element implements ICircuitComponent {
     }
     componentsOnThisOutput.add(component);
   }
-  ArrayList<ICircuitComponent> inputs = new ArrayList<>();
   @Override
-  public void addInput(ICircuitComponent component) {
-    inputs.add(component);
-  }
+  public void addInput(ICircuitComponent component) {}
 
-  private static int lastAssignedNumber = 0;
-  public int pinNumber;
-  
+
   public String getName() {
-    return "GlobalOutput_" + pinNumber;
+    return "FALSE";
   }
-  
-  public GlobalOutput() {
-    this.pinNumber = lastAssignedNumber++;
-  }
-
-  private boolean isPlaced = false;
   @Override
   public boolean isPlaced() {
-    return isPlaced;
+    return true;
   }
   @Override
   public void setIsPlaced(boolean isPlaced) {
-    this.isPlaced = isPlaced;
+    // do nothing. 'false' can never be placed, and that's O.K. (its always 'placed')
   }
 
   static int count = 0;
@@ -55,14 +45,16 @@ public class GlobalOutput extends Element implements ICircuitComponent {
   }
   @Override
   public List<ICircuitComponent> getInputs() {
-    return inputs;
+    return null;
   }
   @Override
   public AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs() {
     return outputs;
   }
+
   @Override
   public String threeLetterType() {
-    return "GLO";
+    return "FLS";
   }
+
 }

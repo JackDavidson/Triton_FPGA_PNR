@@ -6,7 +6,7 @@ public class GlobalInputFactory {
   
   public static GlobalInput makeGlobalInput(String name, BlifDom descriptor) {
    GlobalInput in = new GlobalInput();
-      descriptor.assignWireInput(name, in);
+   descriptor.assignWireInput(name, in);
    return in;
   }
   

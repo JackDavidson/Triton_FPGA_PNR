@@ -1,22 +1,31 @@
 package pnr.components;
 
 import pnr.components.circuit.ICircuitComponent;
+import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.Element;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 
 //global inputs can be a source for wires, but not a destination.
 public class GlobalInput extends Element implements ICircuitComponent {
 
-  ArrayList<ICircuitComponent> outputs = new ArrayList<>();
+  TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
   @Override
-  public void addOutput(ICircuitComponent component) {
-    outputs.add(component);
+  public void addOutput(Integer outputNumber, ICircuitComponent component) {
+    ArrayList<ICircuitComponent> componentsOnThisOutput = outputs.get(outputNumber);
+    if (componentsOnThisOutput == null) {
+      componentsOnThisOutput = new ArrayList<>();
+      outputs.put(outputNumber, componentsOnThisOutput);
+    }
+    componentsOnThisOutput.add(component);
   }
+  ArrayList<ICircuitComponent> inputs = new ArrayList<>();
   @Override
   public void addInput(ICircuitComponent component) {
-    outputs.add(component);
+    inputs.add(component);
   }
 
   private static int lastAssignedNumber = 0;
@@ -49,14 +58,16 @@ public class GlobalInput extends Element implements ICircuitComponent {
   }
   @Override
   public List<ICircuitComponent> getInputs() {
-    return null;
+    return inputs;
   }
   @Override
-  public List<ICircuitComponent> getOutputs() {
-    return null;
+  public AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs() {
+    return outputs;
   }
+
   @Override
   public String threeLetterType() {
     return "GLI";
   }
+
 }

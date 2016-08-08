@@ -1,6 +1,8 @@
 package pnr.fpgas.tci;
 
 // this class is the device speciffic class which actually performs the final place and route.
+import pnr.components.GlobalFalseConst;
+import pnr.components.GlobalOutput;
 import pnr.components.circuit.CircuitFf;
 import pnr.components.circuit.CircuitLut;
 import pnr.components.circuit.ICircuitComponent;
@@ -8,9 +10,10 @@ import pnr.components.fpga.Element;
 import pnr.components.GlobalInput;
 import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.TCI_LogicCell;
-import pnr.components.blif.Wire;
-import pnr.components.blif.SB_DFF;
-import pnr.components.blif.SB_LUT4;
+import pnr.components.blif.BlifWire;
+import pnr.components.blif.BlifDff;
+import pnr.components.blif.BlifLut4;
+import pnr.misc.Defs;
 
 import java.util.*;
 
@@ -18,8 +21,8 @@ public class InternalDescriptor {
   private TCI_LogicCell[] cells = new TCI_LogicCell[240];
 
   // in this hashMap, logic cells are organized by the names of their outputs
-  private HashMap<String, TCI_LogicCell> unplacedLogicCells = new HashMap<String, TCI_LogicCell>();
-  private HashMap<String, GlobalInput> inputs = new HashMap<String, GlobalInput>();
+  private HashMap<String, TCI_LogicCell> unplacedLogicCells = new HashMap<>();
+  private HashMap<String, GlobalInput> inputs = new HashMap<>(); // TODO: delete?
 
 
   private ArrayList<ICircuitComponent> itemsToPlace = new ArrayList<>();
@@ -33,16 +36,16 @@ public class InternalDescriptor {
   private HashMap<ICircuitComponent, ArrayList<String>> circuitToOutputs = new HashMap<>();
 
 
-  public void add(SB_LUT4 obj) {
+  public void add(BlifLut4 obj) {
 
-    CircuitLut lut = new CircuitLut();
+    CircuitLut lut = new CircuitLut(obj.getInit());
     copyToInternalRep(obj, lut);
 
     TCI_LogicCell newCell = new TCI_LogicCell(obj);
     unplacedLogicCells.put(obj.o[0].getName(), newCell);
   }
 
-  public void add(SB_DFF obj) {
+  public void add(BlifDff obj) {
 
 
     CircuitFf flipflop = new CircuitFf();
@@ -65,32 +68,49 @@ public class InternalDescriptor {
   }
 
   private void copyToInternalRep(BlifItemRepr obj, ICircuitComponent component) {
+
+    if (Defs.debug) {
+      System.out.println("inside InternalDescriptor.copyToInternalRep.");
+    }
     // make a copy with the internal representation.
     itemsToPlace.add(component);
 
-    Wire[] blifouts = obj.getOutputs();
+    BlifWire[] blifouts = obj.getOutputs();
     ArrayList<String> objOutputStrs = new ArrayList<>();
     circuitToOutputs.put(component, objOutputStrs);
     if (blifouts != null) {
       // first, outputs from the component are what drive the wires
-      for (Wire output : blifouts) {
+
+      if (Defs.debug) {
+        System.out.println("found output wires. count: " + blifouts.length);
+      }
+      for (BlifWire output : blifouts) {
         String outputName = output.getName();
         objOutputStrs.add(outputName);
+        if (Defs.debug) {
+          System.out.println("wire: " + outputName + " driven by: " + component.getClass().getName());
+        }
         wireDriveLookUp.put(outputName, component);
       }
     }
-    Wire[] blifIns = obj.getOutputs();
+    BlifWire[] blifIns = obj.getInputs();
     ArrayList<String> objInputStrs = new ArrayList<>();
     circuitToInputs.put(component, objInputStrs);
     if (blifIns != null) {
+      if (Defs.debug) {
+        System.out.println("found input wires. count: " + blifIns.length);
+      }
       // first, outputs from the component are what drive the wires
-      for (Wire in : blifIns) {
+      for (BlifWire in : blifIns) {
         ArrayList<ICircuitComponent> existingWireOutputs = wireOutLookUp.get(in.getName());
         String inputName = in.getName();
         objInputStrs.add(inputName);
         if (existingWireOutputs == null) {
           existingWireOutputs = new ArrayList<>();
           wireOutLookUp.put(inputName, existingWireOutputs);
+        }
+        if (Defs.debug) {
+          System.out.println("wire: " + inputName + " route to: " + component.getClass().getName());
         }
         existingWireOutputs.add(component); // add this flipflop to the list of items driven by the wire.
       }
@@ -103,7 +123,7 @@ public class InternalDescriptor {
 
     for (Map.Entry<String, TCI_LogicCell> entry : unplacedLogicCells.entrySet()) {
       result += "\nlogicCell: " + entry.getKey();
-      for (Wire wire : entry.getValue().getWireInputs()) {
+      for (BlifWire wire : entry.getValue().getWireInputs()) {
         result += " " + wire.getName();
       }
     }
@@ -143,10 +163,42 @@ public class InternalDescriptor {
     return result;
   }
 
-  public void add(String wireName, GlobalInput wire) {
-    itemsToPlace.add(wire);
-    wireDriveLookUp.put(wireName, wire);
-    inputs.put(wireName, wire);
+  private static final GlobalFalseConst falseConstanctVal = new GlobalFalseConst();
+  public void addFalse(String wireName) {
+    if (Defs.warn) {
+      if ((wireDriveLookUp.get(wireName) != null)) {
+        if (wireDriveLookUp.get(wireName) != falseConstanctVal)
+          System.out.print("[warn] the wire " + wireName + " will be reassigned to false from: "
+                  + wireDriveLookUp.get(wireName).getClass().getName());
+      }
+    }
+    wireDriveLookUp.put(wireName, falseConstanctVal);
+  }
+
+  public void add(String wireName, GlobalInput globalInput) {
+    if (Defs.debug) {
+      System.out.println("adding global: " + wireName);
+    }
+    itemsToPlace.add(globalInput);
+    wireDriveLookUp.put(wireName, globalInput);
+    inputs.put(wireName, globalInput);
+  }
+
+  public void add(String wireName, GlobalOutput globalOutput) {
+    if (Defs.debug) {
+      System.out.println("adding global: " + wireName);
+    }
+    itemsToPlace.add(globalOutput);
+    addWireOutput(wireName, globalOutput);
+  }
+
+  private void addWireOutput(String wireName, ICircuitComponent component) {
+    ArrayList<ICircuitComponent> wireOutputsSoFar = wireOutLookUp.get(wireName);
+    if (wireOutputsSoFar == null) {
+      wireOutputsSoFar = new ArrayList<>();
+      wireOutLookUp.put(wireName, wireOutputsSoFar);
+    }
+    wireOutputsSoFar.add(component);
   }
 
   private Element findByInputName(String name) {
@@ -169,7 +221,7 @@ public class InternalDescriptor {
    */
   public void assignDirectLogicConnections() {
     for (TCI_LogicCell lc : unplacedLogicCells.values()) {
-      Wire[] wireInputs = lc.getWireInputs();
+      BlifWire[] wireInputs = lc.getWireInputs();
       for (int i = 0; i < 4; i++) { // go through the inputs, and route them to the locic cells
         Element correspondingElem = this.findByInputName(wireInputs[i].getName());
         lc.setTCIInput(i, correspondingElem);
@@ -177,7 +229,31 @@ public class InternalDescriptor {
     }
 
     for (ICircuitComponent item : itemsToPlace) {
-
+      ArrayList<String> wireInputNames = circuitToInputs.get(item);
+      if (wireInputNames != null) {
+        for (String wireInputName : circuitToInputs.get(item)) {
+          if (Defs.debug) {
+            System.out.println("adding input to: " + item.getClass().getName() + " wire: " + wireInputName);
+            System.out.println("found: " + wireDriveLookUp.get(wireInputName));
+          }
+          item.addInput(wireDriveLookUp.get(wireInputName));
+        }
+      }
+      ArrayList<String> outputWireNames = circuitToOutputs.get(item);
+      if (outputWireNames != null) {
+        for (int i = 0; i < outputWireNames.size(); i++) { // normally will only be one item, but more for mult units/adders
+          String outputWireName = outputWireNames.get(i);
+          if (Defs.debug) {
+            System.out.print("About to look for wire's outputs: " + outputWireName);
+          }
+          for (ICircuitComponent outputComponent : wireOutLookUp.get(outputWireName)) {
+            if (Defs.debug) {
+              System.out.println("adding output to: " + item.getClass().getName() + " wire: " + outputWireName);
+            }
+            item.addOutput(i, outputComponent);
+          }
+        }
+      }
     }
   }
   

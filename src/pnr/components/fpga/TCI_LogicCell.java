@@ -3,8 +3,8 @@ package pnr.components.fpga;
 
 import pnr.components.GlobalInput;
 import pnr.components.GlobalOutput;
-import pnr.components.blif.Wire;
-import pnr.components.blif.SB_LUT4;
+import pnr.components.blif.BlifWire;
+import pnr.components.blif.BlifLut4;
 
 public class TCI_LogicCell extends Element {
   private static int lastId = 0;
@@ -14,10 +14,10 @@ public class TCI_LogicCell extends Element {
   public GlobalInput clk = null;
   public int location = 0;
 
-  private SB_LUT4 lookup;
+  private BlifLut4 lookup;
   private Element[] inputs = new Element[4];
 
-  public TCI_LogicCell(SB_LUT4 lookup) {
+  public TCI_LogicCell(BlifLut4 lookup) {
     this.id = lastId++;
     this.lookup = lookup;
   }
@@ -33,7 +33,7 @@ public class TCI_LogicCell extends Element {
 
   }
 
-  public Wire[] getWireInputs() {
+  public BlifWire[] getWireInputs() {
     return lookup.getInputs();
   }
 
@@ -73,7 +73,7 @@ public class TCI_LogicCell extends Element {
   }
 
   public Boolean isOutputLUT() {
-    for (Wire out : this.lookup.o) {
+    for (BlifWire out : this.lookup.o) {
       for (Element e : out.outputs) {
         if (e.getClass() == GlobalOutput.class)
           return true;
