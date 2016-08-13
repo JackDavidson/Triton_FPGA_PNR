@@ -1,5 +1,7 @@
 package pnr.components.circuit;
 
+import pnr.components.fpga.IFpgaComponent;
+
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,8 +10,10 @@ import java.util.List;
  * Created by jack on 7/31/16.
  */
 public interface ICircuitComponent {
-    boolean isPlaced();
-    void setIsPlaced(boolean isPlaced);
+    IFpgaComponent getPlacedOn();
+    //void setIsPlaced(boolean isPlaced);
+    void mapTo(IFpgaComponent c);
+    void unMap();
     int getId();
     List<ICircuitComponent> getInputs();
     AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs();

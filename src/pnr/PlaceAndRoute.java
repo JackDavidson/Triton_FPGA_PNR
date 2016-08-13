@@ -4,10 +4,11 @@ import pnr.components.circuit.CircuitLut;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.fpgas.CannotPlaceException;
 import pnr.fpgas.DoesNotMapException;
-import pnr.fpgas.IFpga;
+import pnr.fpgas.Fpga;
 import pnr.fpgas.tci.InternalDom;
 import pnr.fpgas.tci.TritoncoreI;
 import pnr.misc.Defs;
+import pnr.misc.Helpers;
 import pnr.tools.BliffReader;
 
 import java.util.ArrayList;
@@ -54,25 +55,35 @@ public class PlaceAndRoute {
       originalComponents.addAll(toPlace);
     }
 
-    printAllComponents(originalComponents);
+    if (Defs.stepByStep)
+      printAllComponents(originalComponents);
 
     boolean success = true;
-    IFpga fpga = new TritoncoreI(internalDom);
+    Fpga fpga = new TritoncoreI(internalDom);
     try {
       fpga.placeInitialComponentsHard();
-      while (!fpga.isDone()) {
+      while (toPlace.size() != 0) {
         ICircuitComponent nextComponent = fpga.getNextItemToPlace(toPlace);
-        if (nextComponent == null)
-          nextComponent = toPlace.get(numberOfAttempts.peek()); // just gets a random one
-        //fpga.inferPlacements(toPlace, 0); // todo: count the number of retries
+        if (nextComponent == null) {
+          // just gets the next one. TODO: should be smarter, and handle
+          nextComponent = toPlace.get(0);
+        }
         if (toPlace == null)
           break; // done.
         try {
-          fpga.makePlacement(nextComponent, 0); // todo: count of retries
+          fpga.makePlacement(nextComponent, numberOfAttempts.peek());
           saveState(numberOfAttempts, placedItems, nextComponent);
+          toPlace.remove(nextComponent); // Remove the newly placed item from the list of items to place. TODO: optomize the choice of data structure
         } catch (CannotPlaceException e) {
-          toPlace = backtrack(toPlace, numberOfAttempts, placedItems);
+          toPlace = backtrack(toPlace, numberOfAttempts, placedItems, e.getMessage());
         }
+        if (numberOfAttempts.size() == 0) {
+          // if we popped everything off teh number of attempts stack, we know its impossible to map.
+          throw new DoesNotMapException("We tried everything we could, but we just could not get your design to map" +
+                  " to the FPGA's components.");
+        }
+        if (Defs.stepByStep)
+          printAllComponents(originalComponents);
       }
     } catch (DoesNotMapException e) {
       System.out.println("the input does not map to the fpga: " + e.getMessage());
@@ -85,21 +96,27 @@ public class PlaceAndRoute {
                          ICircuitComponent justPlaced) {
     placedItems.push(justPlaced);
     numberOfAttempts.push(0);
-    placedItems.push(justPlaced);
-    justPlaced.setIsPlaced(true);
+    addedComponents.push(new ArrayList<>());
   }
   private static ArrayList<ICircuitComponent> backtrack(ArrayList<ICircuitComponent> circuitComponents,
                                                         Stack<Integer> numberOfAttempts,
-                                                        Stack<ICircuitComponent> placedItems) {
+                                                        Stack<ICircuitComponent> placedItems, String reason) {
     if (Defs.stepByStep) {
-      System.out.println("\n\nBACKTRACK!!!\n\n");
+      System.out.println("\n\nBACKTRACK!!!\n\n" + reason);
     }
 
     numberOfAttempts.pop(); // pop the latest one off the stack (it failed)
     numberOfAttempts.push(numberOfAttempts.pop() + 1);
-    ICircuitComponent justPlaced =placedItems.pop();
-    justPlaced.setIsPlaced(false);
+    ICircuitComponent justPlaced = placedItems.pop();
+    justPlaced.unMap();
     circuitComponents.add(justPlaced);
+    ArrayList<ICircuitComponent> componentsToRemove = addedComponents.pop();
+    for (ICircuitComponent toRemove : componentsToRemove) {
+      if (Defs.stepByStep) {
+        System.out.print("removing an extra component: " + Helpers.getComponentName(toRemove) + toRemove.getId());
+      }
+      toRemove.unMap();
+    }
     return circuitComponents;
   }
 
@@ -107,18 +124,18 @@ public class PlaceAndRoute {
     System.out.print("\n\n\n\n");
     for (ICircuitComponent component : circuitComponents) {
       System.out.print("[");
-      System.out.print(component.isPlaced() ? "X" : " ");
+      System.out.print(component.getPlacedOn() != null ? "X" : " ");
       System.out.print("] ");
-      System.out.print(getComponentName(component) + ": ");
+      System.out.print(Helpers.getComponentName(component) + ": ");
       if (component.getInputs() != null) {
         for (ICircuitComponent input : component.getInputs()) {
-          System.out.print(" I-" + getComponentName(input));
+          System.out.print(" I-" + Helpers.getComponentName(input));
         }
       }
       if (component.getOutputs() != null) {
         for (Map.Entry<Integer, ArrayList<ICircuitComponent>> input : component.getOutputs().entrySet()) {
           for (ICircuitComponent inputObj : input.getValue()) {
-            System.out.print(" O-" + getComponentName(inputObj) + padInt(input.getKey()));
+            System.out.print(" O-" + Helpers.getComponentName(inputObj) + Helpers.padInt(input.getKey()));
           }
         }
       }
@@ -131,12 +148,13 @@ public class PlaceAndRoute {
     }
   }
 
-  private static String getComponentName(ICircuitComponent component) {
-    return component.threeLetterType() + padInt(component.getId());
-  }
 
-  private static String padInt(int i) {
-    String padding = i < 10 ? "__" : i < 100 ? "_" : "";
-    return padding + i;
+
+  private static Stack<ArrayList<ICircuitComponent>> addedComponents = new Stack<>();
+  public void addComponent(ICircuitComponent cComponent) {
+    if (Defs.stepByStep) {
+      System.out.print("adding an extra component: " + Helpers.getComponentName(cComponent) + cComponent.getId());
+    }
+    addedComponents.peek().add(cComponent);
   }
 }

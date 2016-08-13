@@ -94,6 +94,10 @@ public class InternalDescriptor {
       }
     }
     BlifWire[] blifIns = obj.getInputs();
+
+    if (Defs.debug)
+      System.out.println("Copying to internal representation: " + obj.getClass().getName());
+
     ArrayList<String> objInputStrs = new ArrayList<>();
     circuitToInputs.put(component, objInputStrs);
     if (blifIns != null) {
@@ -186,8 +190,11 @@ public class InternalDescriptor {
 
   public void add(String wireName, GlobalOutput globalOutput) {
     if (Defs.debug) {
-      System.out.println("adding global: " + wireName);
+      System.out.println("adding global output: " + wireName);
     }
+    ArrayList<String> inputStrs = new ArrayList<>();
+    inputStrs.add(wireName);
+    circuitToInputs.put(globalOutput, inputStrs);
     itemsToPlace.add(globalOutput);
     addWireOutput(wireName, globalOutput);
   }
@@ -229,6 +236,8 @@ public class InternalDescriptor {
     }
 
     for (ICircuitComponent item : itemsToPlace) {
+      if (Defs.debug)
+        System.out.println("adding inputs on item: " + item.getClass().getName());
       ArrayList<String> wireInputNames = circuitToInputs.get(item);
       if (wireInputNames != null) {
         for (String wireInputName : circuitToInputs.get(item)) {

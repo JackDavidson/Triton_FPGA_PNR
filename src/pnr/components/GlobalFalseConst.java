@@ -2,6 +2,7 @@ package pnr.components;
 
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.Element;
+import pnr.components.fpga.IFpgaComponent;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -25,16 +26,19 @@ public class GlobalFalseConst implements ICircuitComponent {
   public void addInput(ICircuitComponent component) {}
 
 
-  public String getName() {
-    return "FALSE";
+  IFpgaComponent mappedTo = null;
+  @Override
+  public IFpgaComponent getPlacedOn() {
+    return mappedTo;
   }
   @Override
-  public boolean isPlaced() {
-    return true;
+  public void mapTo(IFpgaComponent c) {
+    mappedTo = c;
+    c.setIsMapped(true);
   }
   @Override
-  public void setIsPlaced(boolean isPlaced) {
-    // do nothing. 'false' can never be placed, and that's O.K. (its always 'placed')
+  public void unMap() {
+    mappedTo = null;
   }
 
   static int count = 0;

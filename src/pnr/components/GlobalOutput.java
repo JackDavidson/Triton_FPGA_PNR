@@ -1,6 +1,7 @@
 package pnr.components;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.Element;
+import pnr.components.fpga.IFpgaComponent;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 // global outputs can be a destination for wires, but not a source.
-public class GlobalOutput extends Element implements ICircuitComponent {
+public class GlobalOutput extends Element implements ICircuitComponent, IFpgaComponent {
 
   TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
   @Override
@@ -37,14 +38,19 @@ public class GlobalOutput extends Element implements ICircuitComponent {
     this.pinNumber = lastAssignedNumber++;
   }
 
-  private boolean isPlaced = false;
+  IFpgaComponent mappedTo = null;
   @Override
-  public boolean isPlaced() {
-    return isPlaced;
+  public IFpgaComponent getPlacedOn() {
+    return mappedTo;
   }
   @Override
-  public void setIsPlaced(boolean isPlaced) {
-    this.isPlaced = isPlaced;
+  public void mapTo(IFpgaComponent c) {
+    mappedTo = c;
+    c.setIsMapped(true);
+  }
+  @Override
+  public void unMap() {
+    mappedTo = null;
   }
 
   static int count = 0;
@@ -64,5 +70,15 @@ public class GlobalOutput extends Element implements ICircuitComponent {
   @Override
   public String threeLetterType() {
     return "GLO";
+  }
+
+  private boolean usedAsFpgaComponent = false;
+  @Override
+  public boolean getIsMapped() {
+    return usedAsFpgaComponent;
+  }
+  @Override
+  public void setIsMapped(boolean isMapped) {
+    usedAsFpgaComponent = isMapped;
   }
 }

@@ -1,5 +1,6 @@
 package pnr.fpgas;
 
+import pnr.PlaceAndRoute;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.IFpgaComponent;
 
@@ -41,37 +42,53 @@ import java.util.ArrayList;
  * note: it is usually a good idea to maintain an internal representation of
  *    your FPGA to help you organize and optimize your code.
  */
-public interface IFpga {
+public abstract class Fpga {
 
-    ArrayList<IFpgaComponent> getComponents();
+    // this should return all the FPGA's components, set up with their
+    // connections.
+    public abstract ArrayList<IFpgaComponent> getComponents();
 
-    void placeInitialComponentsHard();
+    public abstract void placeInitialComponentsHard();
     // numTries is the number of times the algorithm has called this function
     // and failed somewhere further along
-    void placeInitialComponentsSoft(int numTries);
+    public abstract void placeInitialComponentsSoft(int numTries);
 
-    // return false if you choose not to implement this method, and would like
+    // return null if you choose not to implement this method, and would like
     // to use the default implementation.
-    ICircuitComponent getNextItemToPlace(ArrayList<ICircuitComponent> placements);
+    // if you realize there is a problem, such as a component that your FPGA does not have an implementation for,
+    // simply throw a DoesNotMapException, and
+    public abstract ICircuitComponent getNextItemToPlace(ArrayList<ICircuitComponent> placements)
+            throws DoesNotMapException;
 
     // numTries is the number of times the algorithm has called this function
     // and failed somewhere further along. Make sure that you try different placements
     // every time, or simply don't make any placements if numTries != 0
-    void inferPlacements(ArrayList<ICircuitComponent> placements, int numTries);
+    public abstract void inferPlacements(ArrayList<ICircuitComponent> placements, int numTries);
 
     // return false if you choose not to implement this method, and would like
     // to use the default implementation.
     // also, note that you can return false at any time and the stock algorithm will
     // simply begin trying every permutation of placements. A good implementation may
     // be to return false if numTries != 0, but otherwise make your best first guess.
-    boolean makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException;
+    // throw a CannotPlaceException if you cant get this component to place, and want to backtrack.
+    // throw a DoesNotMapException if in this step you realize you can't map the circuit or component at all.
+    public abstract boolean makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
+            DoesNotMapException;
 
     // this function should return true when we are done placing, or may throw
     // an error if somewhere along the way the algorithm has realized that this
     // will never work. A DoesNotMapException means that the program will
     // immediately stop and display an error message.
-    boolean isDone() throws DoesNotMapException;
+    public abstract boolean isDone() throws DoesNotMapException;
 
     // after we are done, we will retrieve the bit stream
-    String getBitstream();
+    public abstract String getBitstream();
+
+    PlaceAndRoute pnr;
+    public void setPlaceAndRoute(PlaceAndRoute pnr) {
+        this.pnr = pnr;
+    }
+    protected void addComponent(ICircuitComponent cComponent) {
+        pnr.addComponent(cComponent);
+    }
 }

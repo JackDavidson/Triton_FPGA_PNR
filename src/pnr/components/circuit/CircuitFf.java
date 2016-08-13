@@ -28,14 +28,19 @@ public class CircuitFf implements ICircuitComponent {
         inputs.add(component);
     }
 
-    private boolean isPlaced = false;
+    IFpgaComponent mappedTo = null;
     @Override
-    public boolean isPlaced() {
-        return isPlaced;
+    public IFpgaComponent getPlacedOn() {
+        return mappedTo;
     }
     @Override
-    public void setIsPlaced(boolean isPlaced) {
-        this.isPlaced = isPlaced;
+    public void mapTo(IFpgaComponent c) {
+        mappedTo = c;
+        c.setIsMapped(true);
+    }
+    @Override
+    public void unMap() {
+        mappedTo = null;
     }
 
     static int count = 0;

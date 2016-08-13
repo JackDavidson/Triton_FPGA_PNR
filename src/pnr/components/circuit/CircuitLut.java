@@ -33,22 +33,28 @@ public class CircuitLut implements ICircuitComponent {
         inputs.add(component);
     }
 
-    private boolean isPlaced = false;
-    @Override
-    public boolean isPlaced() {
-        return isPlaced;
-    }
-    @Override
-    public void setIsPlaced(boolean isPlaced) {
-        this.isPlaced = isPlaced;
-    }
-
     static int count = 0;
     int id = count++;
     @Override
     public int getId() {
         return id;
     }
+
+    IFpgaComponent mappedTo = null;
+    @Override
+    public IFpgaComponent getPlacedOn() {
+        return mappedTo;
+    }
+    @Override
+    public void mapTo(IFpgaComponent c) {
+        mappedTo = c;
+        c.setIsMapped(true);
+    }
+    @Override
+    public void unMap() {
+        mappedTo = null;
+    }
+
     @Override
     public List<ICircuitComponent> getInputs() {
         return inputs;

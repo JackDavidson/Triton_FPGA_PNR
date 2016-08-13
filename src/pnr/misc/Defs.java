@@ -7,4 +7,5 @@ public class Defs {
     public static boolean debug = true;
     public static boolean warn = true;
     public static boolean stepByStep = true; // outputs every step of the algorithm
+    public static boolean verbose = true;
 }
