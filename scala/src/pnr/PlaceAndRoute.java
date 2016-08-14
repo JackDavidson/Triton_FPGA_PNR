@@ -6,7 +6,7 @@ import pnr.fpgas.CannotPlaceException;
 import pnr.fpgas.DoesNotMapException;
 import pnr.fpgas.Fpga;
 import pnr.fpgas.tci.InternalDom;
-import pnr.fpgas.tci.TritoncoreI;
+import pnr.fpgas.TritoncoreI;
 import pnr.misc.Defs;
 import pnr.misc.Helpers;
 import pnr.tools.BliffReader;

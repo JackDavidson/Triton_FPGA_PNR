@@ -1,21 +1,25 @@
 package pnr.fpgas.tci;
 
 // this class is the device speciffic class which actually performs the final place and route.
+
 import pnr.components.GlobalFalseConst;
+import pnr.components.GlobalInput;
 import pnr.components.GlobalOutput;
+import pnr.components.blif.BlifDff;
+import pnr.components.blif.BlifLut4;
+import pnr.components.blif.BlifWire;
 import pnr.components.circuit.CircuitFf;
 import pnr.components.circuit.CircuitLut;
 import pnr.components.circuit.ICircuitComponent;
-import pnr.components.fpga.Element;
-import pnr.components.GlobalInput;
 import pnr.components.fpga.BlifItemRepr;
+import pnr.components.fpga.Element;
 import pnr.components.fpga.TCI_LogicCell;
-import pnr.components.blif.BlifWire;
-import pnr.components.blif.BlifDff;
-import pnr.components.blif.BlifLut4;
 import pnr.misc.Defs;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class InternalDescriptor {
   private TCI_LogicCell[] cells = new TCI_LogicCell[240];

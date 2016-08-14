@@ -1,8 +1,6 @@
 package pnr.components;
 
 import pnr.components.circuit.ICircuitComponent;
-import pnr.components.fpga.BlifItemRepr;
-import pnr.components.fpga.Element;
 import pnr.components.fpga.IFpgaComponent;
 
 import java.util.AbstractMap;
@@ -11,7 +9,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 //global inputs can be a source for wires, but not a destination.
-public class GlobalInput extends Element implements ICircuitComponent, IFpgaComponent {
+public class GlobalFalseConst implements ICircuitComponent {
 
   TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
   @Override
@@ -23,22 +21,8 @@ public class GlobalInput extends Element implements ICircuitComponent, IFpgaComp
     }
     componentsOnThisOutput.add(component);
   }
-  ArrayList<ICircuitComponent> inputs = new ArrayList<>();
   @Override
-  public void addInput(ICircuitComponent component) {
-    inputs.add(component);
-  }
-
-  private static int lastAssignedNumber = 0;
-  public int pinNumber; // actually i
-  
-  public String getName() {
-    return "GI_" + pinNumber;
-  }
-  
-  public GlobalInput() {
-    this.pinNumber = lastAssignedNumber++;
-  }
+  public void addInput(ICircuitComponent component) {}
 
 
   IFpgaComponent mappedTo = null;
@@ -64,7 +48,7 @@ public class GlobalInput extends Element implements ICircuitComponent, IFpgaComp
   }
   @Override
   public List<ICircuitComponent> getInputs() {
-    return inputs;
+    return null;
   }
   @Override
   public AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs() {
@@ -73,16 +57,7 @@ public class GlobalInput extends Element implements ICircuitComponent, IFpgaComp
 
   @Override
   public String threeLetterType() {
-    return "GLI";
+    return "FLS";
   }
 
-  private boolean usedAsFpgaComponent = false;
-  @Override
-  public boolean getIsMapped() {
-    return usedAsFpgaComponent;
-  }
-  @Override
-  public void setIsMapped(boolean isMapped) {
-    usedAsFpgaComponent = isMapped;
-  }
 }

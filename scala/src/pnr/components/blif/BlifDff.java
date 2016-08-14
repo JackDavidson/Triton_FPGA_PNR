@@ -1,8 +1,8 @@
 package pnr.components.blif;
 
 import pnr.BlifDom;
-import pnr.components.fpga.Element;
 import pnr.components.fpga.BlifItemRepr;
+import pnr.components.fpga.Element;
 
 public class BlifDff extends Element implements BlifItemRepr {
   private static int lastId = 0;

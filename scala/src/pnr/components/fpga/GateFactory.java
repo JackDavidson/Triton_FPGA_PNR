@@ -1,10 +1,12 @@
 package pnr.components.fpga;
+
 import pnr.BlifDom;
 import pnr.components.blif.BlifDff;
-import pnr.components.blif.BlifWire;
 import pnr.components.blif.BlifLut4;
+import pnr.components.blif.BlifWire;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.TreeMap;
 
 public class GateFactory {
 

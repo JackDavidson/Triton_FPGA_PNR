@@ -1,18 +1,20 @@
 package pnr.fpgas.tci;
 
 // this class is the device speciffic class which actually performs the final place and route.
+
 import pnr.BlifDom;
 import pnr.components.GlobalInput;
 import pnr.components.GlobalOutput;
 import pnr.components.blif.BlifDff;
-import pnr.components.blif.BlifWire;
 import pnr.components.blif.BlifLut4;
+import pnr.components.blif.BlifWire;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.Element;
 import pnr.misc.Defs;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class InternalDom {
   InternalDescriptor descriptor;

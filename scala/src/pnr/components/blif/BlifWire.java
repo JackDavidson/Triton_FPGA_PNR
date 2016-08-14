@@ -1,8 +1,8 @@
 package pnr.components.blif;
-import pnr.components.circuit.ICircuitComponent;
+
 import pnr.components.fpga.Element;
 
-import java.util.*;
+import java.util.ArrayList;
 
 
 public class BlifWire extends Element {

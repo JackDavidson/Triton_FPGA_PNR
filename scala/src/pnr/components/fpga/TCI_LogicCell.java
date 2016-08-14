@@ -3,8 +3,8 @@ package pnr.components.fpga;
 
 import pnr.components.GlobalInput;
 import pnr.components.GlobalOutput;
-import pnr.components.blif.BlifWire;
 import pnr.components.blif.BlifLut4;
+import pnr.components.blif.BlifWire;
 
 public class TCI_LogicCell extends Element {
   private static int lastId = 0;

@@ -1,13 +1,14 @@
 package pnr.tools;
 
 import pnr.BlifDom;
+import pnr.components.GlobalInputFactory;
 import pnr.components.GlobalOutputFactory;
 import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.GateFactory;
-import pnr.components.GlobalInputFactory;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.Scanner;
 
 public class BliffReader {
   

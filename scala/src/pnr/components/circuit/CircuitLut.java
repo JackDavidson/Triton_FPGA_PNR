@@ -2,7 +2,10 @@ package pnr.components.circuit;
 
 import pnr.components.fpga.IFpgaComponent;
 
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
 
 /**
  * Created by jack on 7/31/16.

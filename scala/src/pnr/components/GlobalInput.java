@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 //global inputs can be a source for wires, but not a destination.
-public class GlobalFalseConst implements ICircuitComponent {
+public class GlobalInput extends Element implements ICircuitComponent, IFpgaComponent {
 
   TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
   @Override
@@ -22,8 +22,22 @@ public class GlobalFalseConst implements ICircuitComponent {
     }
     componentsOnThisOutput.add(component);
   }
+  ArrayList<ICircuitComponent> inputs = new ArrayList<>();
   @Override
-  public void addInput(ICircuitComponent component) {}
+  public void addInput(ICircuitComponent component) {
+    inputs.add(component);
+  }
+
+  private static int lastAssignedNumber = 0;
+  public int pinNumber; // actually i
+  
+  public String getName() {
+    return "GI_" + pinNumber;
+  }
+  
+  public GlobalInput() {
+    this.pinNumber = lastAssignedNumber++;
+  }
 
 
   IFpgaComponent mappedTo = null;
@@ -49,7 +63,7 @@ public class GlobalFalseConst implements ICircuitComponent {
   }
   @Override
   public List<ICircuitComponent> getInputs() {
-    return null;
+    return inputs;
   }
   @Override
   public AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs() {
@@ -58,7 +72,16 @@ public class GlobalFalseConst implements ICircuitComponent {
 
   @Override
   public String threeLetterType() {
-    return "FLS";
+    return "GLI";
   }
 
+  private boolean usedAsFpgaComponent = false;
+  @Override
+  public boolean getIsMapped() {
+    return usedAsFpgaComponent;
+  }
+  @Override
+  public void setIsMapped(boolean isMapped) {
+    usedAsFpgaComponent = isMapped;
+  }
 }

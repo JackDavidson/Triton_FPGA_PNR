@@ -1,6 +1,7 @@
 package pnr.components.blif;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WireFactory {
   

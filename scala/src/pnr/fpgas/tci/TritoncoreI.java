@@ -1,6 +1,5 @@
 package pnr.fpgas.tci;
 
-import jdk.nashorn.internal.runtime.Debug;
 import pnr.components.GlobalInput;
 import pnr.components.GlobalOutput;
 import pnr.components.circuit.CircuitLut;
@@ -176,5 +175,11 @@ public class TritoncoreI extends Fpga {
     @Override
     public String getBitstream() {
         return "";
+    }
+
+    public String getDebuggingRepresentation() {
+        StringBuilder result = new StringBuilder();
+
+        return result.toString();
     }
 }
