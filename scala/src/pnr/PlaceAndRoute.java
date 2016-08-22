@@ -65,7 +65,7 @@ public class PlaceAndRoute {
       while (toPlace.size() != 0) {
         ICircuitComponent nextComponent = fpga.getNextItemToPlace(toPlace);
         if (nextComponent == null) {
-          // just gets the next one. TODO: should be smarter, and handle
+          // just gets the next one. TODO: should be smarter, and handle retrying in different ways
           nextComponent = toPlace.get(0);
         }
         if (toPlace == null)

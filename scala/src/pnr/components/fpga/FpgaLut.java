@@ -1,16 +1,18 @@
 package pnr.components.fpga;
 
+import pnr.components.circuit.ICircuitComponent;
+
 /**
  * Created by jack on 8/12/16.
  */
 public class FpgaLut implements IFpgaComponent {
-    private boolean usedAsFpgaComponent = false;
+    private ICircuitComponent circuitComponent;
     @Override
-    public boolean getIsMapped() {
-        return usedAsFpgaComponent;
+    public ICircuitComponent getCircuitMapping() {
+        return circuitComponent;
     }
     @Override
-    public void setIsMapped(boolean isMapped) {
-        usedAsFpgaComponent = isMapped;
+    public void setCircuitMapping(ICircuitComponent isMapped) {
+        circuitComponent = isMapped;
     }
 }

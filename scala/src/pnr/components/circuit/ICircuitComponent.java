@@ -2,6 +2,7 @@ package pnr.components.circuit;
 
 import pnr.components.fpga.IFpgaComponent;
 
+import java.io.UncheckedIOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,10 +13,10 @@ import java.util.List;
 public interface ICircuitComponent {
     IFpgaComponent getPlacedOn();
     //void setIsPlaced(boolean isPlaced);
-    void mapTo(IFpgaComponent c);
+    void mapTo(IFpgaComponent c) throws AlreadyMappedException;
     void unMap();
     int getId();
-    List<ICircuitComponent> getInputs();
+    ArrayList<ICircuitComponent> getInputs();
     AbstractMap<Integer, ArrayList<ICircuitComponent>> getOutputs();
     String threeLetterType();
     void addInput(ICircuitComponent component);

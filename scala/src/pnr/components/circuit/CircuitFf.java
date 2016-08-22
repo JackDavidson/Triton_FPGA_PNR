@@ -34,12 +34,15 @@ public class CircuitFf implements ICircuitComponent {
         return mappedTo;
     }
     @Override
-    public void mapTo(IFpgaComponent c) {
+    public void mapTo(IFpgaComponent c) throws AlreadyMappedException {
+        if (mappedTo != null)
+            throw new AlreadyMappedException(this.getClass().getName() + " has already been mapped!");
         mappedTo = c;
-        c.setIsMapped(true);
+        c.setCircuitMapping(this);
     }
     @Override
     public void unMap() {
+        mappedTo.setCircuitMapping(null);
         mappedTo = null;
     }
 
@@ -50,7 +53,7 @@ public class CircuitFf implements ICircuitComponent {
         return id;
     }
     @Override
-    public List<ICircuitComponent> getInputs() {
+    public ArrayList<ICircuitComponent> getInputs() {
         return inputs;
     }
     @Override

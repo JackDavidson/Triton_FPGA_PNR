@@ -1,5 +1,6 @@
 package pnr.components;
 
+import pnr.components.circuit.AlreadyMappedException;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.Element;
 import pnr.components.fpga.IFpgaComponent;
@@ -46,12 +47,15 @@ public class GlobalInput extends Element implements ICircuitComponent, IFpgaComp
     return mappedTo;
   }
   @Override
-  public void mapTo(IFpgaComponent c) {
+  public void mapTo(IFpgaComponent c) throws AlreadyMappedException {
+    if (mappedTo != null)
+      throw new AlreadyMappedException(this.getClass().getName() + " has already been mapped!");
     mappedTo = c;
-    c.setIsMapped(true);
+    c.setCircuitMapping(this);
   }
   @Override
   public void unMap() {
+    mappedTo.setCircuitMapping(null);
     mappedTo = null;
   }
 
@@ -62,7 +66,7 @@ public class GlobalInput extends Element implements ICircuitComponent, IFpgaComp
     return id;
   }
   @Override
-  public List<ICircuitComponent> getInputs() {
+  public ArrayList<ICircuitComponent> getInputs() {
     return inputs;
   }
   @Override
@@ -75,13 +79,13 @@ public class GlobalInput extends Element implements ICircuitComponent, IFpgaComp
     return "GLI";
   }
 
-  private boolean usedAsFpgaComponent = false;
+  private ICircuitComponent circuitComponent;
   @Override
-  public boolean getIsMapped() {
-    return usedAsFpgaComponent;
+  public ICircuitComponent getCircuitMapping() {
+    return circuitComponent;
   }
   @Override
-  public void setIsMapped(boolean isMapped) {
-    usedAsFpgaComponent = isMapped;
+  public void setCircuitMapping(ICircuitComponent isMapped) {
+    circuitComponent = isMapped;
   }
 }
