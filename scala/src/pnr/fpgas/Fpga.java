@@ -1,10 +1,12 @@
 package pnr.fpgas;
 
 import pnr.PlaceAndRoute;
+import pnr.actions.IAction;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.IFpgaComponent;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The IFpga class is used by your speciffic FPGA class. It must implement a
@@ -72,14 +74,8 @@ public abstract class Fpga {
     // be to return false if numTries != 0, but otherwise make your best first guess.
     // throw a CannotPlaceException if you cant get this component to place, and want to backtrack.
     // throw a DoesNotMapException if in this step you realize you can't map the circuit or component at all.
-    public abstract boolean makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
+    public abstract IAction makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
             DoesNotMapException;
-
-    // this function should return true when we are done placing, or may throw
-    // an error if somewhere along the way the algorithm has realized that this
-    // will never work. A DoesNotMapException means that the program will
-    // immediately stop and display an error message.
-    public abstract boolean isDone() throws DoesNotMapException;
 
     // after we are done, we will retrieve the bit stream
     public abstract String getBitstream();
@@ -87,8 +83,5 @@ public abstract class Fpga {
     PlaceAndRoute pnr;
     public void setPlaceAndRoute(PlaceAndRoute pnr) {
         this.pnr = pnr;
-    }
-    protected void addComponent(ICircuitComponent cComponent) {
-        pnr.addComponent(cComponent);
     }
 }
