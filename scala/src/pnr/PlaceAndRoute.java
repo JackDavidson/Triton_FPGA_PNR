@@ -12,24 +12,16 @@ import pnr.fpgas.tci.InternalDom;
 import pnr.fpgas.tci.TritoncoreI;
 import pnr.misc.Defs;
 import pnr.misc.Helpers;
+import pnr.misc.Pair;
 import pnr.tools.BliffReader;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
 public class PlaceAndRoute {
 
-  private static String swapInputs(int a, int b, String originalBits) {
-    String newBits = "";
-    for (int i = 0; i < 16; i++) {
-      int j = ((i & (1 << a)) >> a) << b;
-      int k = ((i & (1 << b)) >> b) << a;
-      int l = (i & (~(1 << a)) & (~(1 << b))) | j | k;
-      newBits += originalBits.charAt(l);
-    }
-    return newBits;
-  }
 
   private static PnrState pnrState = new PnrState();
 
@@ -60,7 +52,17 @@ public class PlaceAndRoute {
     boolean success = true;
     Fpga fpga = new TritoncoreI(internalDom);
     try {
-      fpga.placeInitialComponentsHard();
+
+      Pair<Boolean, List<IAction>> initialActions = fpga.performInitialActions(pnrState.allComponents);
+      do {
+        if (initialActions.v != null) {
+          for (IAction action : initialActions.v) {
+            action.perform(pnrState);
+          }
+        }
+        initialActions = fpga.performInitialActions(pnrState.allComponents);
+      } while (initialActions.k);
+
       while (pnrState.toPlace.size() != 0) {
         ICircuitComponent nextComponent = fpga.getNextItemToPlace(pnrState.toPlace);
         if (nextComponent == null) {

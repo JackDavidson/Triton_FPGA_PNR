@@ -1,20 +1,27 @@
 package pnr.fpgas.tci
 
+import java.lang.Boolean
 import java.util
 
+import pnr.actions.circuitlut.ActionSwapInput
 import pnr.actions.{ActionMapTo, IAction}
 import pnr.components.circuit.{CircuitLut, ICircuitComponent}
 import pnr.components.fpga.{FpgaLut, IFpgaComponent}
-import pnr.components.{GlobalInput, GlobalOutput}
+import pnr.components.{GlobalFalseConst, GlobalInput, GlobalOutput}
 import pnr.fpgas.{CannotPlaceException, DoesNotMapException, Fpga}
-import pnr.misc.{Defs, Helpers}
+import pnr.misc.{Defs, Helpers, Pair}
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by jack on 8/14/16.
   */
 class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
+
+  private val DEFAULT_ROUTING_BITS = "000000"
+
+
   private val globalInputs: List[GlobalInput] = List.fill(16)(new GlobalInput) // 16 global inputs
   private val globalOutputs: List[GlobalOutput] = List.fill(16)(new GlobalOutput)
   private val lutGroupsForLooup: List[util.HashMap[FpgaLut, Int]] = List.fill(4)(new util.HashMap[FpgaLut, Int])
@@ -29,12 +36,6 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
   }
 
   def getComponents: util.ArrayList[IFpgaComponent] = new util.ArrayList[IFpgaComponent]
-
-  def placeInitialComponentsHard() {
-  }
-
-  def placeInitialComponentsSoft(numTries: Int) {
-  }
 
   @throws[DoesNotMapException]
   def getNextItemToPlace(placements: util.ArrayList[ICircuitComponent]) : ICircuitComponent = {
@@ -204,8 +205,7 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
     // first, lets get the list of all the LUTs
     val luts = lutGroups.flatten
-    val result = new StringBuilder // create a stringBuilder so we can efficiently create the bitstream text.
-    for (lut <- luts.zipWithIndex) { // then iterate over each LUT
+    val routing : List[List[String]] = luts.zipWithIndex.map(lut => { // iterate over each LUT
       // find the item which is the input
       val circuitItem = lut._1.getCircuitMapping() // find the circuit object that the LUT got mapped to it
       if (circuitItem != null) { // if there is such an item, emit the bitstream for it
@@ -227,25 +227,58 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
           throw new RuntimeException("we only have 4 inputs to each lut. found: " + inputList.size)
         }
         // === end sanity check ===
-        for (input <- inputList.zipWithIndex) { // go through all the inputs and generate the bits for routing
+        inputList.zipWithIndex.map((input) => { // go through all the inputs and generate the bits for routing
           input._1 match {
-            case _:CircuitLut => if (input != null)
-              assert(lutGroupsForLooup(input._2).get(input._1.getPlacedOn) != null, "We expected the input number " + input._2
+            case x:CircuitLut => if (input != null) {
+              val idxOfInput = lutGroupsForLooup(input._2).get(input._1.getPlacedOn)
+              assert(idxOfInput != null, "We expected the input number " + input._2
                 + " for lut " + lut._1.getCircuitMapping.getId + " to be found in group: " + input._2
                 + " but it seems it is not.")
-            case _:GlobalInput => assert(input._2 == 0, "We expect that a global input will always be on input 0, but "
+              idxOfInput.toBinaryString
+            } else DEFAULT_ROUTING_BITS
+            case x:GlobalInput => assert(input._2 == 0, "We expect that a global input will always be on input 0, but "
               + "instead it seems that it is on input " + input._2 + " for lut with ID: " + circuitItem.getId)
+              globalInputs.indexOf(x).toBinaryString
+            case _:GlobalFalseConst => DEFAULT_ROUTING_BITS // go to default
             case _ => throw new RuntimeException("unrecognized class: " + input._1.getClass)
           }
-          result.append("")
-        }
-      }
-    }
-    return result.toString
+        }).toList
+      } else List.fill(4)(DEFAULT_ROUTING_BITS) // repeat the default routing 4 times otherwise
+    })
+    return routing.toString
   }
 
   def getDebuggingRepresentation: String = {
     val result: StringBuilder = new StringBuilder
     return result.toString
+  }
+
+  override def performInitialActions(circutItems: util.List[ICircuitComponent]): Pair[Boolean, util.List[IAction]] = {
+    // first, lets just check to see if there are any items with global inputs
+    val itemsWithOneGbiOnWrongSpot = circutItems.filter((circuitComponent : ICircuitComponent) => {
+      circuitComponent match {
+        case c : CircuitLut => val cInputs = c.getInputs
+          cInputs.length == 4 && !cInputs(0).isInstanceOf[GlobalInput] && (
+            cInputs(1).isInstanceOf[GlobalInput]
+            || cInputs(2).isInstanceOf[GlobalInput]
+            || cInputs(3).isInstanceOf[GlobalInput]
+            )
+        case _ => false
+      }
+    })
+    if (itemsWithOneGbiOnWrongSpot.length > 0) {
+      val actionListToMoveGbiToFront = itemsWithOneGbiOnWrongSpot.map(
+        _ match {
+          case c: CircuitLut => val firstIdxOfGbi = c.getInputs.subList (1, 4).zipWithIndex.find(_._1.isInstanceOf[GlobalInput])
+            .get._2 + 1
+            if (Defs.debug)
+              println("we are swapping input: 0  with input: " + firstIdxOfGbi + " for: " + Helpers.getComponentName(c))
+            new ActionSwapInput (c, 0, firstIdxOfGbi)
+          case _ => throw new Error("looks like I wrote some bad scala");
+        }
+      )
+      return new Pair(true, actionListToMoveGbiToFront)
+    }
+    return new Pair(false, null)
   }
 }

@@ -13,6 +13,6 @@ class ActionSwapInput(circuitLut: CircuitLut, a: Int, b: Int) extends IAction {
   }
 
   def perform(pnrState: PnrState) = {
-
+    circuitLut.swapInputValues(a, b);
   }
 }
