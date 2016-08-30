@@ -171,7 +171,7 @@ public class InternalDescriptor {
     return result;
   }
 
-  private static final GlobalFalseConst falseConstanctVal = new GlobalFalseConst();
+  private static final GlobalFalseConst falseConstanctVal = GlobalFalseConst.get();
   public void addFalse(String wireName) {
     if (Defs.warn) {
       if ((wireDriveLookUp.get(wireName) != null)) {
@@ -190,6 +190,14 @@ public class InternalDescriptor {
     itemsToPlace.add(globalInput);
     wireDriveLookUp.put(wireName, globalInput);
     inputs.put(wireName, globalInput);
+
+    ArrayList<String> outputWireNames = circuitToOutputs.get(globalInput);
+    if (outputWireNames == null) {
+      outputWireNames = new ArrayList<>();
+      circuitToOutputs.put(globalInput, outputWireNames);
+    }
+    outputWireNames.add(wireName);
+
   }
 
   public void add(String wireName, GlobalOutput globalOutput) {
@@ -231,13 +239,6 @@ public class InternalDescriptor {
    * this method resolves the input connections in each logic cell
    */
   public void assignDirectLogicConnections() {
-    for (TCI_LogicCell lc : unplacedLogicCells.values()) {
-      BlifWire[] wireInputs = lc.getWireInputs();
-      for (int i = 0; i < 4; i++) { // go through the inputs, and route them to the locic cells
-        Element correspondingElem = this.findByInputName(wireInputs[i].getName());
-        lc.setTCIInput(i, correspondingElem);
-      }
-    }
 
     for (ICircuitComponent item : itemsToPlace) {
       if (Defs.debug)

@@ -3,7 +3,7 @@ package pnr.fpgas.tci
 import java.lang.Boolean
 import java.util
 
-import pnr.actions.circuitlut.ActionSwapInput
+import pnr.actions.circuitlut.{ActionExtractToIdentityLut, ActionSwapInput}
 import pnr.actions.{ActionMapTo, IAction}
 import pnr.components.circuit.{CircuitLut, ICircuitComponent}
 import pnr.components.fpga.{FpgaLut, IFpgaComponent}
@@ -160,8 +160,6 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
   @throws[CannotPlaceException]
   private def placeOnNextAvailableForGrouping(groupNum: Int, toPlace: CircuitLut): IAction = {
-    println("")
-    var placed: Boolean = false
     val group = lutGroupsForLooup(groupNum)
     println("size: " + group.size())
     import scala.collection.JavaConversions._
@@ -237,7 +235,7 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
               idxOfInput.toBinaryString
             } else DEFAULT_ROUTING_BITS
             case x:GlobalInput => assert(input._2 == 0, "We expect that a global input will always be on input 0, but "
-              + "instead it seems that it is on input " + input._2 + " for lut with ID: " + circuitItem.getId)
+              + "instead it seems that it is on input " + input._2 + " for: " + Helpers.getComponentName(circuitItem))
               globalInputs.indexOf(x).toBinaryString
             case _:GlobalFalseConst => DEFAULT_ROUTING_BITS // go to default
             case _ => throw new RuntimeException("unrecognized class: " + input._1.getClass)
@@ -254,7 +252,7 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
   }
 
   override def performInitialActions(circutItems: util.List[ICircuitComponent]): Pair[Boolean, util.List[IAction]] = {
-    // first, lets just check to see if there are any items with global inputs
+    // first, lets just check to see if there are any items with global inputs that are on the wrong position.
     val itemsWithOneGbiOnWrongSpot = circutItems.filter((circuitComponent : ICircuitComponent) => {
       circuitComponent match {
         case c : CircuitLut => val cInputs = c.getInputs
@@ -266,7 +264,7 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
         case _ => false
       }
     })
-    if (itemsWithOneGbiOnWrongSpot.length > 0) {
+    if (itemsWithOneGbiOnWrongSpot.length > 0) { // generate the IActions to move the global inputs to the proper directory
       val actionListToMoveGbiToFront = itemsWithOneGbiOnWrongSpot.map(
         _ match {
           case c: CircuitLut => val firstIdxOfGbi = c.getInputs.subList (1, 4).zipWithIndex.find(_._1.isInstanceOf[GlobalInput])
@@ -279,6 +277,36 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
       )
       return new Pair(true, actionListToMoveGbiToFront)
     }
+
+    // note that by the time that we get to here, we have already moved the Gbi's that we can to the LSB input.
+    val itemsWithGbiOnNotLsb = circutItems.filter((circuitComponent : ICircuitComponent) => {
+      circuitComponent match {
+        case c : CircuitLut => val cInputs = c.getInputs
+          cInputs.length == 4 && (
+            cInputs(1).isInstanceOf[GlobalInput]
+              || cInputs(2).isInstanceOf[GlobalInput]
+              || cInputs(3).isInstanceOf[GlobalInput]
+            )
+        case _ => false
+      }
+    })
+    if (itemsWithGbiOnNotLsb.length > 0) {
+      val gibiExtractionItems = itemsWithGbiOnNotLsb.map(
+        _ match {
+          case c: CircuitLut => c.getInputs.subList(1, 4).filter(_.isInstanceOf[GlobalInput])
+          case _ => throw new Error("looks like I wrote some bad scala");
+        }
+      ).flatten.distinct.map(
+        _ match {
+          case globalInput : GlobalInput => new ActionExtractToIdentityLut(globalInput, 4, 1)
+          case _ => throw new Error("looks like I wrote some bad scala");
+        }
+      )
+      return new Pair(true, gibiExtractionItems)
+    }
+
+
+
     return new Pair(false, null)
   }
 }

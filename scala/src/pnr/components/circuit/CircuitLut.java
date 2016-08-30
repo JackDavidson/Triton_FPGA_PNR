@@ -1,11 +1,9 @@
 package pnr.components.circuit;
 
 import pnr.components.fpga.IFpgaComponent;
+import pnr.misc.Helpers;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by jack on 7/31/16.
@@ -51,6 +49,15 @@ public class CircuitLut implements ICircuitComponent {
         this.initValues = initValues;
     }
 
+    public CircuitLut(String initValues, List<ICircuitComponent> inputs,
+                      AbstractMap<Integer, ArrayList<ICircuitComponent>> outputs) {
+        this.initValues = initValues;
+        this.inputs.addAll(inputs);
+        for (Map.Entry<Integer, ArrayList<ICircuitComponent>> output : outputs.entrySet())
+            for (ICircuitComponent component : output.getValue())
+                addOutput(output.getKey(), component);
+    }
+
     TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
     @Override
     public void addOutput(Integer outputNumber, ICircuitComponent component) {
@@ -60,12 +67,19 @@ public class CircuitLut implements ICircuitComponent {
             outputs.put(outputNumber, componentsOnThisOutput);
         }
         componentsOnThisOutput.add(component);
+
+        System.out.println(Helpers.getComponentName(this) + " inputs: " + inputs.size() + " outputs: " + outputs.size());
+
+        long requiredInitValLength = (long) Math.pow(2, inputs.size()) * outputs.size();
+        while (initValues.length() < requiredInitValLength) {
+            initValues += initValues; // double up the init value, since only part was specified.
+        }
     }
     ArrayList<ICircuitComponent> inputs = new ArrayList<>();
     public void addInput(ICircuitComponent component) {
         inputs.add(component);
-        long requiredInitValLength = (long) Math.pow(2, inputs.size());
-        if (initValues.length() < requiredInitValLength) {
+        long requiredInitValLength = (long) Math.pow(2, inputs.size()) * outputs.size();
+        while (initValues.length() < requiredInitValLength) {
             initValues += initValues; // double up the init value, since only part was specified.
         }
     }
