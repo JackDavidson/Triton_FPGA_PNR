@@ -1,10 +1,13 @@
 package pnr.fpgas;
 
 import pnr.PlaceAndRoute;
+import pnr.actions.IAction;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.components.fpga.IFpgaComponent;
+import pnr.misc.Pair;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The IFpga class is used by your speciffic FPGA class. It must implement a
@@ -48,10 +51,13 @@ public abstract class Fpga {
     // connections.
     public abstract ArrayList<IFpgaComponent> getComponents();
 
-    public abstract void placeInitialComponentsHard();
-    // numTries is the number of times the algorithm has called this function
-    // and failed somewhere further along
-    public abstract void placeInitialComponentsSoft(int numTries);
+    // this is to give you a chance to perform actions for transforming the initial input into a format
+    // that is more easily parsed for later iterations. return true for the boolean if you would like this
+    // method to be called again after performing the actions you specified.
+    // the input that will be passed to this method is the entire list of components that need to be mapped to
+    // your FPGA. If your actions contain instructions to generate new components, they will be included in
+    // subsequent calls. Thre is no particular ordering to circuitItems.
+    public abstract Pair<Boolean, List<IAction>> performInitialActions(List<ICircuitComponent> circutItems);
 
     // return null if you choose not to implement this method, and would like
     // to use the default implementation.
@@ -72,14 +78,8 @@ public abstract class Fpga {
     // be to return false if numTries != 0, but otherwise make your best first guess.
     // throw a CannotPlaceException if you cant get this component to place, and want to backtrack.
     // throw a DoesNotMapException if in this step you realize you can't map the circuit or component at all.
-    public abstract boolean makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
+    public abstract IAction makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
             DoesNotMapException;
-
-    // this function should return true when we are done placing, or may throw
-    // an error if somewhere along the way the algorithm has realized that this
-    // will never work. A DoesNotMapException means that the program will
-    // immediately stop and display an error message.
-    public abstract boolean isDone() throws DoesNotMapException;
 
     // after we are done, we will retrieve the bit stream
     public abstract String getBitstream();
@@ -87,8 +87,5 @@ public abstract class Fpga {
     PlaceAndRoute pnr;
     public void setPlaceAndRoute(PlaceAndRoute pnr) {
         this.pnr = pnr;
-    }
-    protected void addComponent(ICircuitComponent cComponent) {
-        pnr.addComponent(cComponent);
     }
 }

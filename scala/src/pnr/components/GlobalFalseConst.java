@@ -12,6 +12,16 @@ import java.util.TreeMap;
 //global inputs can be a source for wires, but not a destination.
 public class GlobalFalseConst implements ICircuitComponent {
 
+  private static GlobalFalseConst theFalseConst = new GlobalFalseConst();
+
+  private GlobalFalseConst() {
+    // do nothing, this is just to make it not possible to instantiate directly.
+  }
+
+  public static GlobalFalseConst get() {
+    return theFalseConst;
+  }
+
   TreeMap<Integer, ArrayList<ICircuitComponent>> outputs = new TreeMap<>();
   @Override
   public void addOutput(Integer outputNumber, ICircuitComponent component) {

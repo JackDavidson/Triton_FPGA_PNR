@@ -1,42 +1,33 @@
 package pnr;
 
+import pnr.actions.ActionUnmap;
+import pnr.actions.IAction;
 import pnr.components.circuit.CircuitLut;
 import pnr.components.circuit.ICircuitComponent;
 import pnr.fpgas.CannotPlaceException;
 import pnr.fpgas.DoesNotMapException;
 import pnr.fpgas.Fpga;
+import pnr.fpgas.PnrState;
 import pnr.fpgas.tci.InternalDom;
-import pnr.fpgas.TritoncoreI;
+import pnr.fpgas.tci.TritoncoreI;
 import pnr.misc.Defs;
 import pnr.misc.Helpers;
+import pnr.misc.Pair;
 import pnr.tools.BliffReader;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
 public class PlaceAndRoute {
 
-  private static String swapInputs(int a, int b, String originalBits) {
-    String newBits = "";
-    for (int i = 0; i < 16; i++) {
-      int j = ((i & (1 << a)) >> a) << b;
-      int k = ((i & (1 << b)) >> b) << a;
-      int l = (i & (~(1 << a)) & (~(1 << b))) | j | k;
-      newBits += originalBits.charAt(l);
-    }
-    return newBits;
-  }
-  
+
+  private static PnrState pnrState = new PnrState();
+
   public static void main(String[] args) {
-
-    Stack<Integer> numberOfAttempts = new Stack<>();
-    Stack<ICircuitComponent> placedItems = new Stack<>();
-
-    numberOfAttempts.push(0);
+    pnrState.numberOfAttempts.push(0);
     InternalDom internalDom;
-    ArrayList<ICircuitComponent> toPlace;
-    ArrayList<ICircuitComponent> originalComponents = new ArrayList<>();
     if (args.length != 1) {
       System.out.println("usage: java pnr [file.bliff]");
       return;
@@ -51,39 +42,48 @@ public class PlaceAndRoute {
 
       internalDom = new InternalDom(blifDom);
       internalDom.printRepresentation();
-      toPlace = internalDom.getComponentsList();
-      originalComponents.addAll(toPlace);
+      pnrState.toPlace = internalDom.getComponentsList();
+      pnrState.allComponents.addAll(pnrState.toPlace);
     }
 
     if (Defs.stepByStep)
-      printAllComponents(originalComponents);
+      printAllComponents(pnrState.allComponents);
 
     boolean success = true;
     Fpga fpga = new TritoncoreI(internalDom);
     try {
-      fpga.placeInitialComponentsHard();
-      while (toPlace.size() != 0) {
-        ICircuitComponent nextComponent = fpga.getNextItemToPlace(toPlace);
+
+      Pair<Boolean, List<IAction>> initialActions = fpga.performInitialActions(pnrState.allComponents);
+      do {
+        if (initialActions.v != null) {
+          for (IAction action : initialActions.v) {
+            action.perform(pnrState);
+          }
+        }
+        initialActions = fpga.performInitialActions(pnrState.allComponents);
+      } while (initialActions.k);
+
+      while (pnrState.toPlace.size() != 0) {
+        ICircuitComponent nextComponent = fpga.getNextItemToPlace(pnrState.toPlace);
         if (nextComponent == null) {
           // just gets the next one. TODO: should be smarter, and handle retrying in different ways
-          nextComponent = toPlace.get(0);
+          nextComponent = pnrState.toPlace.get(0);
         }
-        if (toPlace == null)
+        if (pnrState.toPlace == null)
           break; // done.
         try {
-          fpga.makePlacement(nextComponent, numberOfAttempts.peek());
-          saveState(numberOfAttempts, placedItems, nextComponent);
-          toPlace.remove(nextComponent); // Remove the newly placed item from the list of items to place. TODO: optomize the choice of data structure
+          IAction action = fpga.makePlacement(nextComponent, pnrState.numberOfAttempts.peek());
+          performAction(pnrState.numberOfAttempts, pnrState.reversals, action);
         } catch (CannotPlaceException e) {
-          toPlace = backtrack(toPlace, numberOfAttempts, placedItems, e.getMessage());
+          pnrState.toPlace = backtrack(pnrState.toPlace, pnrState.numberOfAttempts, pnrState.reversals, e.getMessage());
         }
-        if (numberOfAttempts.size() == 0) {
+        if (pnrState.numberOfAttempts.size() == 0) {
           // if we popped everything off teh number of attempts stack, we know its impossible to map.
           throw new DoesNotMapException("We tried everything we could, but we just could not get your design to map" +
                   " to the FPGA's components.");
         }
         if (Defs.stepByStep)
-          printAllComponents(originalComponents);
+          printAllComponents(pnrState.allComponents);
       }
     } catch (DoesNotMapException e) {
       System.out.println("the input does not map to the fpga: " + e.getMessage());
@@ -92,31 +92,25 @@ public class PlaceAndRoute {
     if (success)
       System.out.println(fpga.getBitstream());
   }
-  private static void saveState(Stack<Integer> numberOfAttempts, Stack<ICircuitComponent> placedItems,
-                         ICircuitComponent justPlaced) {
-    placedItems.push(justPlaced);
+  private static void performAction(Stack<Integer> numberOfAttempts, Stack<IAction> reversals, IAction action) {
+    reversals.push(action.inverse());
+    action.perform(pnrState);
     numberOfAttempts.push(0);
-    addedComponents.push(new ArrayList<>());
   }
   private static ArrayList<ICircuitComponent> backtrack(ArrayList<ICircuitComponent> circuitComponents,
-                                                        Stack<Integer> numberOfAttempts,
-                                                        Stack<ICircuitComponent> placedItems, String reason) {
+                                                        Stack<Integer> numberOfAttempts, Stack<IAction> reversals, String reason) {
     if (Defs.stepByStep) {
       System.out.println("\n\nBACKTRACK!!!\n\n" + reason);
     }
 
-    numberOfAttempts.pop(); // pop the latest one off the stack (it failed)
-    numberOfAttempts.push(numberOfAttempts.pop() + 1);
-    ICircuitComponent justPlaced = placedItems.pop();
-    justPlaced.unMap();
-    circuitComponents.add(justPlaced);
-    ArrayList<ICircuitComponent> componentsToRemove = addedComponents.pop();
-    for (ICircuitComponent toRemove : componentsToRemove) {
-      if (Defs.stepByStep) {
-        System.out.print("removing an extra component: " + Helpers.getComponentName(toRemove) + toRemove.getId());
-      }
-      toRemove.unMap();
-    }
+    IAction lastAction;
+    do {
+      lastAction = reversals.pop();
+      lastAction.perform(pnrState);
+      numberOfAttempts.pop(); // pop the latest one off the stack (it failed)
+      numberOfAttempts.push(numberOfAttempts.pop() + 1);
+    } while (lastAction.getClass() != ActionUnmap.class);
+
     return circuitComponents;
   }
 
