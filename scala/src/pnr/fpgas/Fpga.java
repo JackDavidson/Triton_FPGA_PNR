@@ -78,7 +78,7 @@ public abstract class Fpga {
     // be to return false if numTries != 0, but otherwise make your best first guess.
     // throw a CannotPlaceException if you cant get this component to place, and want to backtrack.
     // throw a DoesNotMapException if in this step you realize you can't map the circuit or component at all.
-    public abstract IAction makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
+    public abstract List<IAction> makePlacement(ICircuitComponent component, List<ICircuitComponent> components, int numTries) throws CannotPlaceException,
             DoesNotMapException;
 
     // after we are done, we will retrieve the bit stream

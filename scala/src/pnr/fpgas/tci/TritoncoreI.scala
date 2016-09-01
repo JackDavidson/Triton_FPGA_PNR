@@ -13,6 +13,7 @@ import pnr.misc.{Defs, Helpers, Pair}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
+import scala.runtime.RichInt
 
 /**
   * Created by jack on 8/14/16.
@@ -22,7 +23,10 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
   private val DEFAULT_ROUTING_BITS = "000000"
 
 
-  private val globalInputs: List[GlobalInput] = List.fill(16)(new GlobalInput) // 16 global inputs
+  private val globalInputs: List[GlobalInput] = List.fill(16){val g = new GlobalInput;
+  println("created: "+ Helpers.getComponentName(g))
+    g;
+  } // 16 global inputs
   private val globalOutputs: List[GlobalOutput] = List.fill(16)(new GlobalOutput)
   private val lutGroupsForLooup: List[util.HashMap[FpgaLut, Int]] = List.fill(4)(new util.HashMap[FpgaLut, Int])
   private val lutGroups: List[List[FpgaLut]] = List.fill(4)(List.fill(60)(new FpgaLut))
@@ -47,18 +51,52 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
     return null
   }
 
-  def inferPlacements(placements: util.ArrayList[ICircuitComponent], numTries: Int) {
+  def inferPlacements(placements: util.ArrayList[ICircuitComponent], numTries: Int): Unit = {
   }
 
   @throws[CannotPlaceException]
   @throws[DoesNotMapException]
-  def makePlacement(component: ICircuitComponent, numTries: Int): IAction = {
-    component match {
+  def makePlacement(component: ICircuitComponent, components: util.List[ICircuitComponent], numTries: Int): util.List[IAction] = {
+    val placement = component match {
       case c : CircuitLut => makePlacement(c)
       case c : GlobalInput => makePlacement(c)
       case c : GlobalOutput => makePlacement(c)
       case c => throw new DoesNotMapException("Unrecognized component for TCI: " + component.getClass.getName)
     }
+
+
+    // we also need to check to see if there are any placed components with their inputs on the wrong spot.
+    // thanks to functional programming, this can be done simultaneously!
+    // if we find that we have a situation where something cant actually get to its input, we just need to
+    // duplicate the output of that LUT. (or just move around inputs)
+
+    def singleInputOnWrongSpot(item: ICircuitComponent, inputPos : Int): Boolean = {
+      item match {
+        case x: GlobalInput => inputPos != 0 // if the input is a global input, it has to be on LSB
+        case x: CircuitLut => lutGroupsForLooup.get(0).get(x) != inputPos
+        case _ => false
+      }
+    }
+
+    def itemHasInputOnWrongSpot = (item: ICircuitComponent) => {
+      item match {
+        case i : CircuitLut =>
+          if (i.getPlacedOn == null) false else
+          i.getInputs.zipWithIndex.filter((item) => singleInputOnWrongSpot(item._1, item._2)).size > 0
+        case _ => false
+      }
+    }
+
+    val itemsThatNeedInputMoved = components.filter(itemHasInputOnWrongSpot(_))
+
+    for (item <- itemsThatNeedInputMoved) {
+      println("TODO: fix inputs on " + Helpers.getComponentName(item))
+    }
+
+    if (placement != null)
+      List(placement)
+    else
+      null
   }
 
   @throws[CannotPlaceException]
@@ -155,7 +193,7 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
     val placementLocation = indexOfHighestVal(votesForWhereItShouldGo)
 
-    placeOnNextAvailableForGrouping(placementLocation, l)
+    placeOnNextAvailableForGrouping(placementLocation, l) // note this actually returns an Action.
   }
 
   @throws[CannotPlaceException]
@@ -201,6 +239,17 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
   def getBitstream: String = {
 
+    def toSixBitString = (i : RichInt)=>
+    {
+      if (i <= 0)
+        throw new Exception("converting a negative number to a string is undefined.")
+      val str = i.toBinaryString
+
+      if (str.length > 6 || str.length < 0)
+        throw new Exception("cant extend a string with " + str.length + " length to length of 6")
+      else
+        "0"*(6-str.length)+str
+    }
     // first, lets get the list of all the LUTs
     val luts = lutGroups.flatten
     val routing : List[List[String]] = luts.zipWithIndex.map(lut => { // iterate over each LUT
@@ -228,16 +277,28 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
         inputList.zipWithIndex.map((input) => { // go through all the inputs and generate the bits for routing
           input._1 match {
             case x:CircuitLut => if (input != null) {
-              val idxOfInput = lutGroupsForLooup(input._2).get(input._1.getPlacedOn)
-              assert(idxOfInput != null, "We expected the input number " + input._2
+              val idxOfInput = lutGroupsForLooup(input._2).get(x.getPlacedOn)
+              assert(idxOfInput > 0, "We expected the input number " + input._2
                 + " for lut " + lut._1.getCircuitMapping.getId + " to be found in group: " + input._2
                 + " but it seems it is not.")
-              idxOfInput.toBinaryString
+              toSixBitString(idxOfInput) // get the binary string, and extend to 6 bits.
             } else DEFAULT_ROUTING_BITS
             case x:GlobalInput => assert(input._2 == 0, "We expect that a global input will always be on input 0, but "
               + "instead it seems that it is on input " + input._2 + " for: " + Helpers.getComponentName(circuitItem))
-              globalInputs.indexOf(x).toBinaryString
-            case _:GlobalFalseConst => DEFAULT_ROUTING_BITS // go to default
+              x.getPlacedOn match {
+                case y : GlobalInput =>
+                  if (Defs.debug)
+                    println("looking for GlobalInput: " + Helpers.getComponentName(y))
+                  for (i <- globalInputs) {
+                    println("found: " + Helpers.getComponentName(i))
+                  }
+                  toSixBitString(globalInputs.zipWithIndex.find(_._1 == y).getOrElse(
+                    throw new RuntimeException("Failed to find the globalInput we mapped to in the list of global inputs.")
+                  )._2)
+                case y => throw new RuntimeException("It looks like a global input was actually connected to a: "
+                  + y.getClass.toString)
+              }
+            case _:GlobalFalseConst => DEFAULT_ROUTING_BITS // just use the default for 'false' const (desn't matter)
             case _ => throw new RuntimeException("unrecognized class: " + input._1.getClass)
           }
         }).toList
