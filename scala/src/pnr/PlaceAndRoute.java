@@ -73,7 +73,13 @@ public class PlaceAndRoute {
         if (pnrState.toPlace == null)
           break; // done.
         try {
-          actionsToPerform = fpga.makePlacement(nextComponent, pnrState.allComponents, pnrState.numberOfAttempts.peek());
+          actionsToPerform = fpga.makePlacement(nextComponent, pnrState.numberOfAttempts.peek());
+          if (actionsToPerform != null) {
+            for (IAction action : actionsToPerform) {
+              performAction(pnrState.numberOfAttempts, pnrState.reversals, action);
+            }
+          }
+          actionsToPerform = fpga.inferNextActions(pnrState.allComponents, pnrState.numberOfAttempts.peek());
           if (actionsToPerform != null) {
             for (IAction action : actionsToPerform) {
               performAction(pnrState.numberOfAttempts, pnrState.reversals, action);
@@ -87,8 +93,10 @@ public class PlaceAndRoute {
           throw new DoesNotMapException("We tried everything we could, but we just could not get your design to map" +
                   " to the FPGA's components.");
         }
-        if (Defs.stepByStep)
+        if (Defs.stepByStep) {
           printAllComponents(pnrState.allComponents);
+          System.out.println(fpga.getDebuggingRepresentation());
+        }
       }
     } catch (DoesNotMapException e) {
       System.out.println("the input does not map to the fpga: " + e.getMessage());

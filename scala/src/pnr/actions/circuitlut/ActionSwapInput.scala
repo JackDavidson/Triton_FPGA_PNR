@@ -3,6 +3,7 @@ package pnr.actions.circuitlut
 import pnr.actions.{ActionUnmap, IAction}
 import pnr.components.circuit.CircuitLut
 import pnr.fpgas.PnrState
+import pnr.misc.Helpers
 
 /**
   * Created by jack on 8/28/16.
@@ -15,4 +16,6 @@ class ActionSwapInput(circuitLut: CircuitLut, a: Int, b: Int) extends IAction {
   def perform(pnrState: PnrState) = {
     circuitLut.swapInputValues(a, b);
   }
+
+  override def toString = "for item: " + Helpers.getComponentName(circuitLut) + " we are going to swap input " + a + " and " + b
 }

@@ -66,10 +66,6 @@ public abstract class Fpga {
     public abstract ICircuitComponent getNextItemToPlace(ArrayList<ICircuitComponent> placements)
             throws DoesNotMapException;
 
-    // numTries is the number of times the algorithm has called this function
-    // and failed somewhere further along. Make sure that you try different placements
-    // every time, or simply don't make any placements if numTries != 0
-    public abstract void inferPlacements(ArrayList<ICircuitComponent> placements, int numTries);
 
     // return false if you choose not to implement this method, and would like
     // to use the default implementation.
@@ -78,7 +74,13 @@ public abstract class Fpga {
     // be to return false if numTries != 0, but otherwise make your best first guess.
     // throw a CannotPlaceException if you cant get this component to place, and want to backtrack.
     // throw a DoesNotMapException if in this step you realize you can't map the circuit or component at all.
-    public abstract List<IAction> makePlacement(ICircuitComponent component, List<ICircuitComponent> components, int numTries) throws CannotPlaceException,
+    public abstract List<IAction> makePlacement(ICircuitComponent component, int numTries) throws CannotPlaceException,
+            DoesNotMapException;
+
+    // numTries is the number of times the algorithm has called this function
+    // and failed somewhere further along. Make sure that you try different placements
+    // every time, or simply don't make any placements if numTries != 0
+    public abstract List<IAction> inferNextActions(List<ICircuitComponent> components, int numTries) throws CannotPlaceException,
             DoesNotMapException;
 
     // after we are done, we will retrieve the bit stream
@@ -88,4 +90,6 @@ public abstract class Fpga {
     public void setPlaceAndRoute(PlaceAndRoute pnr) {
         this.pnr = pnr;
     }
+
+    public abstract String getDebuggingRepresentation();
 }
