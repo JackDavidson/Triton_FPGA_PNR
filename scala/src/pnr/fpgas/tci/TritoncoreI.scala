@@ -3,7 +3,7 @@ package pnr.fpgas.tci
 import java.lang.Boolean
 import java.util
 
-import pnr.actions.circuitlut.{ActionExtractToIdentityLut, ActionSwapInput}
+import pnr.actions.circuitlut.{ActionDuplicateLut, ActionExtractToIdentityLut, ActionSwapInput, ActionSwapInputComponent}
 import pnr.actions.{ActionMapTo, IAction}
 import pnr.components.circuit.{CircuitLut, ICircuitComponent}
 import pnr.components.fpga.{FpgaLut, IFpgaComponent}
@@ -13,6 +13,7 @@ import pnr.misc.{Defs, Helpers, Pair}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
+import scala.runtime.RichInt
 
 /**
   * Created by jack on 8/14/16.
@@ -47,19 +48,120 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
     return null
   }
 
-  def inferPlacements(placements: util.ArrayList[ICircuitComponent], numTries: Int) {
+
+  override def inferNextActions(components: util.List[ICircuitComponent], numTries: Int): util.List[IAction] = {
+    // we also need to check to see if there are any placed components with their inputs on the wrong spot.
+    // thanks to functional programming, this can be done simultaneously!
+    // if we find that we have a situation where something cant actually get to its input, we just need to
+    // duplicate the output of that LUT. (or just move around inputs)
+
+
+
+    // returns either null if there is nothing wrong, or a pair: (currentIdx, idxToMoveTo)
+    // will return null if everything is in order.
+    def getInputsToSwapOrNull2(inputItem: ICircuitComponent, inputPos : Int): (Int, Int) = {
+      inputItem match {
+        case x: GlobalInput => if (inputPos != 0) (inputPos, 0) else null// if the input is a global input, it has to be on LSB
+        case x: CircuitLut =>
+          if (x.getPlacedOn == null) {
+            null
+          } else {
+            println("---found a citcuitlut input: " + Helpers.getComponentName(x))
+            println("---if this input is not on index: " + inputPos + " then we know there is an error.")
+            val groupFoundOn: Int = findLutsGroup(x.getPlacedOn)
+            println("---it turns out that " + Helpers.getComponentName(x) + " is placed on: " + groupFoundOn)
+            if (inputPos != groupFoundOn) {
+              // if we didnt find the item in the group where it belongs
+              println("---so, we are returning: " + inputPos + " and " + groupFoundOn)
+              (inputPos, groupFoundOn)
+            }
+            else
+              null
+          }
+        case _ => null
+      }
+    }
+
+    def getInputsToSwapOrNull(item: ICircuitComponent): (ICircuitComponent, List[(Int, Int)]) = {
+      (item, item match {
+        case i : CircuitLut =>
+          if (i.getPlacedOn == null) null else
+            println("---found item to consider. length of inputs: " + i.getInputs.length)
+          i.getInputs.zipWithIndex.map((item) => getInputsToSwapOrNull2(item._1, item._2)).filter(_ != null).toList
+        case _ => null
+      })
+    }
+
+    components
+      .map(getInputsToSwapOrNull(_))
+      .filter((i) => i._2 != null && i._2.length != 0)
+      .map(item =>
+        item match {
+          case (item: CircuitLut, list: List[(Int,Int)]) =>
+
+            // get the position that has the highest value. tuple t is: (bestIdx,bestIdxVal). v = valOfThisIdx
+            def indexOfHighestVal(arr : List[(Int, Int)]) = (arr.foldLeft((0,0))
+            ((t,v) => if (v._1 >= t._2) (v._2,v._1) else (t._1,t._2)))
+
+            val flatList: List[Int] = list.map((a) => List(a._1,a._2)).flatten
+            val inputWithMostMoveOps = indexOfHighestVal(flatList.groupBy(identity).mapValues(_.size).toList)
+            if (inputWithMostMoveOps._2 > 1) {
+              println("---duplicating a lut and moving")
+             item.getInputs.get(inputWithMostMoveOps._1) match {
+               case itemToDuplicate : CircuitLut =>
+                 val actionDuplicateLut = new ActionDuplicateLut(itemToDuplicate)
+                 val actionSwapInputComponent = new ActionSwapInputComponent (item, actionDuplicateLut.lutToBeCreated, item)
+                 List(actionDuplicateLut, actionSwapInputComponent)
+               case _ =>
+                 throw new RuntimeException("We shouldn't have found anything that is not a ICircuitComponent here")
+             }
+            } else {
+              list.map((entry) => new ActionSwapInput(item, entry._1, entry._2))
+            }
+          case _ => throw new RuntimeException("Somehow, there is an item in out list of CircuitLuts and their inputs " +
+            "that need to get swapped that contains something that is not a CircuitLut.")
+        }
+      ).flatten.toList
+
+  }
+
+  def findLutsGroup(lut : IFpgaComponent): Int = {
+    lut match {
+      case x : FpgaLut =>
+        if (lutGroupsForLooup(0).get(lut) != null)
+          return 0
+        if (lutGroupsForLooup(1).get(lut) != null)
+          return 1
+        if (lutGroupsForLooup(2).get(lut) != null)
+          return 2
+        if (lutGroupsForLooup(3).get(lut) != null)
+          return 3
+        throw new RuntimeException("Did not find a group mapping for LUT: " + lut)
+      case _ => throw new RuntimeException("expected a LUT, but didn't get it. got: " + lut.getClass)
+    }
   }
 
   @throws[CannotPlaceException]
   @throws[DoesNotMapException]
-  def makePlacement(component: ICircuitComponent, numTries: Int): IAction = {
-    component match {
-      case c : CircuitLut => makePlacement(c)
-      case c : GlobalInput => makePlacement(c)
-      case c : GlobalOutput => makePlacement(c)
+  def makePlacement(component: ICircuitComponent, numTries: Int): util.List[IAction] = {
+    val placement = component match {
+      case c: CircuitLut => makePlacement(c)
+      case c: GlobalInput => makePlacement(c)
+      case c: GlobalOutput => makePlacement(c)
       case c => throw new DoesNotMapException("Unrecognized component for TCI: " + component.getClass.getName)
     }
+
+
+
+
+    if (placement != null)
+      List(placement)
+    else
+      null
   }
+
+
+
 
   @throws[CannotPlaceException]
   private def makePlacement(l: CircuitLut): IAction = {
@@ -151,11 +253,11 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
     // get the position that has the highest value. tuple t is: (bestIdx,bestIdxVal). v = valOfThisIdx
     def indexOfHighestVal(arr : List[Int]) = (arr.zipWithIndex.foldLeft((0,0))
-    ((t,v) => if (v._1 > t._2) (v._2,v._1) else (t._1,t._2)))._1
+    ((t,v) => if (v._1 >= t._2) (v._2,v._1) else (t._1,t._2)))._1
 
     val placementLocation = indexOfHighestVal(votesForWhereItShouldGo)
 
-    placeOnNextAvailableForGrouping(placementLocation, l)
+    placeOnNextAvailableForGrouping(placementLocation, l) // note this actually returns an Action.
   }
 
   @throws[CannotPlaceException]
@@ -201,6 +303,17 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
   def getBitstream: String = {
 
+    def toSixBitString = (i : RichInt)=>
+    {
+      if (i <= 0)
+        throw new Exception("converting a negative number to a string is undefined.")
+      val str = i.toBinaryString
+
+      if (str.length > 6 || str.length < 0)
+        throw new Exception("cant extend a string with " + str.length + " length to length of 6")
+      else
+        "0"*(6-str.length)+str
+    }
     // first, lets get the list of all the LUTs
     val luts = lutGroups.flatten
     val routing : List[List[String]] = luts.zipWithIndex.map(lut => { // iterate over each LUT
@@ -228,16 +341,29 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
         inputList.zipWithIndex.map((input) => { // go through all the inputs and generate the bits for routing
           input._1 match {
             case x:CircuitLut => if (input != null) {
-              val idxOfInput = lutGroupsForLooup(input._2).get(input._1.getPlacedOn)
-              assert(idxOfInput != null, "We expected the input number " + input._2
+              val idxOfInput = lutGroupsForLooup(input._2).get(x.getPlacedOn)
+              assert(idxOfInput > 0, "We expected the input number " + input._2
                 + " for lut " + lut._1.getCircuitMapping.getId + " to be found in group: " + input._2
-                + " but it seems it is not.")
-              idxOfInput.toBinaryString
+                + " but it seems it is not. it is instead found in: " + findLutsGroup(x.getPlacedOn)
+                + " this is for input: " + Helpers.getComponentName(x))
+              toSixBitString(idxOfInput) // get the binary string, and extend to 6 bits.
             } else DEFAULT_ROUTING_BITS
             case x:GlobalInput => assert(input._2 == 0, "We expect that a global input will always be on input 0, but "
               + "instead it seems that it is on input " + input._2 + " for: " + Helpers.getComponentName(circuitItem))
-              globalInputs.indexOf(x).toBinaryString
-            case _:GlobalFalseConst => DEFAULT_ROUTING_BITS // go to default
+              x.getPlacedOn match {
+                case y : GlobalInput =>
+                  if (Defs.debug)
+                    println("looking for GlobalInput: " + Helpers.getComponentName(y))
+                  for (i <- globalInputs) {
+                    println("found: " + Helpers.getComponentName(i))
+                  }
+                  toSixBitString(globalInputs.zipWithIndex.find(_._1 == y).getOrElse(
+                    throw new RuntimeException("Failed to find the globalInput we mapped to in the list of global inputs.")
+                  )._2)
+                case y => throw new RuntimeException("It looks like a global input was actually connected to a: "
+                  + y.getClass.toString)
+              }
+            case _:GlobalFalseConst => DEFAULT_ROUTING_BITS // just use the default for 'false' const (desn't matter)
             case _ => throw new RuntimeException("unrecognized class: " + input._1.getClass)
           }
         }).toList
@@ -246,9 +372,16 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
     return routing.toString
   }
 
-  def getDebuggingRepresentation: String = {
-    val result: StringBuilder = new StringBuilder
-    return result.toString
+  override def getDebuggingRepresentation: String = {
+    "internal rep:\n\n\n" + lutGroups.zipWithIndex.map((lutGroup) => {
+      lutGroup._1.zipWithIndex.map((lut) => {
+        if (lut._1.getCircuitMapping != null) {
+          "group: " + lutGroup._2 + " index: " + lut._2 + " " + Helpers.getComponentName(lut._1.getCircuitMapping)
+        } else {
+          null
+        }
+      })
+    }).flatten.filter(_ != null).mkString("\n") + "\n\n\n"
   }
 
   override def performInitialActions(circutItems: util.List[ICircuitComponent]): Pair[Boolean, util.List[IAction]] = {
@@ -309,4 +442,5 @@ class TritoncoreI(placeAndRouter: InternalDom) extends Fpga {
 
     return new Pair(false, null)
   }
+
 }

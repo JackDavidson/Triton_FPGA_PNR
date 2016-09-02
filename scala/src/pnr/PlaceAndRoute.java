@@ -63,7 +63,8 @@ public class PlaceAndRoute {
         initialActions = fpga.performInitialActions(pnrState.allComponents);
       } while (initialActions.k);
 
-      while (pnrState.toPlace.size() != 0) {
+      List<IAction> actionsToPerform = null;
+      while (pnrState.toPlace.size() != 0 || (actionsToPerform != null && actionsToPerform.size() == 0)) {
         ICircuitComponent nextComponent = fpga.getNextItemToPlace(pnrState.toPlace);
         if (nextComponent == null) {
           // just gets the next one. TODO: should be smarter, and handle retrying in different ways
@@ -72,8 +73,18 @@ public class PlaceAndRoute {
         if (pnrState.toPlace == null)
           break; // done.
         try {
-          IAction action = fpga.makePlacement(nextComponent, pnrState.numberOfAttempts.peek());
-          performAction(pnrState.numberOfAttempts, pnrState.reversals, action);
+          actionsToPerform = fpga.makePlacement(nextComponent, pnrState.numberOfAttempts.peek());
+          if (actionsToPerform != null) {
+            for (IAction action : actionsToPerform) {
+              performAction(pnrState.numberOfAttempts, pnrState.reversals, action);
+            }
+          }
+          actionsToPerform = fpga.inferNextActions(pnrState.allComponents, pnrState.numberOfAttempts.peek());
+          if (actionsToPerform != null) {
+            for (IAction action : actionsToPerform) {
+              performAction(pnrState.numberOfAttempts, pnrState.reversals, action);
+            }
+          }
         } catch (CannotPlaceException e) {
           pnrState.toPlace = backtrack(pnrState.toPlace, pnrState.numberOfAttempts, pnrState.reversals, e.getMessage());
         }
@@ -82,8 +93,10 @@ public class PlaceAndRoute {
           throw new DoesNotMapException("We tried everything we could, but we just could not get your design to map" +
                   " to the FPGA's components.");
         }
-        if (Defs.stepByStep)
+        if (Defs.stepByStep) {
           printAllComponents(pnrState.allComponents);
+          System.out.println(fpga.getDebuggingRepresentation());
+        }
       }
     } catch (DoesNotMapException e) {
       System.out.println("the input does not map to the fpga: " + e.getMessage());

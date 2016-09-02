@@ -64,6 +64,6 @@ class ActionExtractToIdentityLut(curcuitComponentToDuplicate: ICircuitComponent,
       }
     }
     pnrState.allComponents.add(lutToBeCreated)
-    pnrState.toPlace.add(lutToBeCreated);
+    pnrState.toPlace.add(lutToBeCreated)
   }
 }
