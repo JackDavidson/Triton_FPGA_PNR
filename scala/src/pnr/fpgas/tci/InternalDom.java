@@ -27,7 +27,6 @@ public class InternalDom {
 
     performTransforms();
     resolveConnections();
-    placeHardcodedNodes();
   }
 
   // takes the generic LUT, etc. and transforms them into the TCI_LogicCell,
@@ -93,7 +92,6 @@ public class InternalDom {
 
   public void resolveConnections() {
     descriptor.assignDirectLogicConnections();
-    descriptor.makePreOptimizations();
   }
 
   public void place() {
@@ -113,14 +111,8 @@ public class InternalDom {
   }
 
   public void printRepresentation() {
-    System.out.println(descriptor.describeUnlinkedLogicCells());
-    System.out.println(descriptor.describeLinkedLogicCells());
   }
 
-  // this just places the output logic cells on Tritoncore-I
-  public void placeHardcodedNodes() {
-    descriptor.placeOutputs();
-  }
 
   public ArrayList<ICircuitComponent> getComponentsList() {
     return descriptor.getComponentsList();

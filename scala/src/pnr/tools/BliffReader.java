@@ -1,8 +1,8 @@
 package pnr.tools;
 
 import pnr.BlifDom;
-import pnr.components.GlobalInputFactory;
-import pnr.components.GlobalOutputFactory;
+import pnr.components.GlobalInput;
+import pnr.components.GlobalOutput;
 import pnr.components.fpga.BlifItemRepr;
 import pnr.components.fpga.GateFactory;
 
@@ -35,9 +35,21 @@ public class BliffReader {
         continue;
       }
       if (lineToParse.startsWith(".inputs")) { // process input names
-        GlobalInputFactory.makeInputs(lineToParse, resultDescriptor);
+        String[] inputNames = line.substring(".inputs".length()).split("\\s+");
+        for (String inputName : inputNames) {
+          if (inputName.trim().length() > 0) {
+            GlobalInput in = new GlobalInput();
+            resultDescriptor.assignWireInput(inputName, in);
+          }
+        }
       } else if (lineToParse.startsWith(".outputs")) { // process output names
-        GlobalOutputFactory.makeInputs(lineToParse, resultDescriptor);
+        String[] outputNames = line.substring(".outputs".length()).split("\\s+");
+        for (String outputName : outputNames) {
+          if (outputName.trim().length() > 0) {
+            GlobalOutput out = new GlobalOutput();
+            resultDescriptor.assignWireOutput(outputName, out);
+          }
+        }
       } else if (lineToParse.startsWith(".param")) { // process output names
         GateFactory.handleParam(lineToParse, lastGateCreated);
       } else if (lineToParse.startsWith("#")) { // ignore comments

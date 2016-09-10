@@ -35,8 +35,8 @@ public class CircuitLut implements ICircuitComponent {
         ICircuitComponent tmpB = inputs.get(b);
         inputs.remove(b);
         inputs.remove(a);
-        inputs.add(b, tmpA);
         inputs.add(a, tmpB);
+        inputs.add(b, tmpA);
         return newBits;
     }
 
