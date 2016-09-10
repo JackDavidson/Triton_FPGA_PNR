@@ -14,6 +14,7 @@ class ActionSwapInput(circuitLut: CircuitLut, a: Int, b: Int) extends IAction {
   }
 
   def perform(pnrState: PnrState) = {
+    println("performing swap of inputs: " + a + " and " + b + " on: " + Helpers.getComponentName(circuitLut))
     circuitLut.swapInputValues(a, b);
   }
 
